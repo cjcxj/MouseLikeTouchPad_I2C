@@ -16,11 +16,7 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Initialize WDK Environment
-      run: |
-        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\ewdk.ps1") {
-          . "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\ewdk.ps1"
-        }
+
         
     - name: Build Driver (Release x64)
       run: msbuild MouseLikeTouchPad_I2C.sln /p:Configuration="Release" /p:Platform="x64" /p:SignMode=Off /t:Rebuild

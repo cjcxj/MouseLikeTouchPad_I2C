@@ -15,7 +15,7 @@ jobs:
     
     - name: Install Windows Driver Kit (WDK)
       run: |
-        Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2196230" -OutFile "wdksetup.exe"
+        Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2273514" -OutFile "wdksetup.exe"
         Start-Process -FilePath ".\wdksetup.exe" -ArgumentList "/q /norestart /features +" -Wait
 
     - name: List Installed WDKs

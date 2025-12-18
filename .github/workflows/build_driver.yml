@@ -13,6 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: List Installed WDKs
+      run: |
+        Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\Include"
+        Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\Lib"
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.1
 

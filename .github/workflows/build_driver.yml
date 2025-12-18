@@ -38,6 +38,7 @@ jobs:
       run: |
         cd Test
         cl InjectTouch.cpp user32.lib setupapi.lib /Fe:InjectTouch.exe
+        cl InstallDevice.cpp setupapi.lib newdev.lib /Fe:InstallDevice.exe
 
     - name: Upload Driver Artifacts
       uses: actions/upload-artifact@v4
@@ -48,3 +49,4 @@ jobs:
           x64/Release/MouseLikeTouchPad_I2C.inf
           x64/Release/MouseLikeTouchPad_I2C.cat
           Test/InjectTouch.exe
+          Test/InstallDevice.exe

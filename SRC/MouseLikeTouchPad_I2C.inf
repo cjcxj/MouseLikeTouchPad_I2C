@@ -27,9 +27,9 @@ MouseLikeTouchPad_I2C.sys  = 1,,
 ;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=Standard,NT$ARCH$
+%ManufacturerName%=Standard,NTamd64
 
-[Standard.NT$ARCH$]
+[Standard.NTamd64]
 %MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ROOT\MouseLikePTP
 
 [MouseLikeTouchPad_I2C_Device.NT]

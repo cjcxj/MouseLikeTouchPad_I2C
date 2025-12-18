@@ -33,6 +33,7 @@
   bcdedit /set testsigning on
   ```
   (需要重启电脑生效)。
+  > **注意**：如果遇到“该值受安全引导策略保护”的错误，您需要在 BIOS/UEFI 设置中**关闭安全启动 (Secure Boot)**。
 
 ### 构建驱动程序
 
@@ -50,15 +51,29 @@
 3. 输出文件（`MouseLikeTouchPad_I2C.sys`, `.inf`, `.cat`）将位于构建目录中。
 
 ### 安装驱动程序
-由于这是一个根枚举设备（虚拟设备），请使用 `devcon` 工具（包含在 WDK 中）进行安装：
+### 安装驱动程序
+
+由于这是一个根枚举设备（虚拟设备），您有两种安装方式。
+
+#### 方法 A：使用设备管理器（推荐，无需额外工具）
+1. 打开 **设备管理器** (Win + X -> M)。
+2. 点击菜单栏的 **操作 (Action)** -> **添加过时硬件 (Add legacy hardware)**。
+   - *（如果没有看到“操作”菜单，请先点击一下右侧列表中的任意设备选中它）*
+3. 点击 **下一步**。
+4. 选择 **安装我手动从列表选择的硬件(高级)**，点击 **下一步**。
+5. 选择 **显示所有设备**，点击 **下一步**。
+6. 点击 **从磁盘安装 (Have Disk...)**。
+7. 点击 **浏览**，找到并选中您下载/编译的 `MouseLikeTouchPad_I2C.inf` 文件。
+8. 此时应显示 "MouseLikePTP Virtual Touchpad"，点击 **下一步** 完成安装。
+
+#### 方法 B：使用 `devcon` 命令（仅限已安装 WDK 的用户）
+如果您安装了 WDK，可以在 WDK 安装目录下找到 `devcon.exe` (例如 `C:\Program Files (x86)\Windows Kits\10\Tools\x64\devcon.exe`)。
 
 1. 以管理员身份打开命令提示符 (CMD)。
-2. 导航到包含已构建驱动文件的文件夹。
-3. 运行：
+2. 运行：
    ```cmd
-   devcon install MouseLikeTouchPad_I2C.inf ROOT\MouseLikePTP
+   "C:\path\to\devcon.exe" install MouseLikeTouchPad_I2C.inf ROOT\MouseLikePTP
    ```
-4. 在弹出的安装提示中确认安装。
 
 ### 使用 `InjectTouch.exe` 进行测试
 1. 导航到项目中的 `Test` 目录。

@@ -27,7 +27,7 @@
 ## 构建和安装说明
 
 ### 前置条件
-- 安装了带有 WDK (Windows Driver Kit) 的 Visual Studio。
+- 安装了带有 WDK (Windows Driver Kit) 的 Visual Studio。建议安装 SDK/WDK 版本 **10.0.22621.0** 以确保最佳兼容性。
 - 目标机器已启用“测试签名”模式：
   ```cmd
   bcdedit /set testsigning on

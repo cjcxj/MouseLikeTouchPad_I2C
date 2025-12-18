@@ -28,6 +28,9 @@ jobs:
 
 
         
+    - name: Setup MSVC Dev Cmd
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Build Driver (Release x64)
       run: msbuild MouseLikeTouchPad_I2C.sln /p:Configuration="Release" /p:Platform="x64" /p:SignMode=Off /t:Rebuild
 

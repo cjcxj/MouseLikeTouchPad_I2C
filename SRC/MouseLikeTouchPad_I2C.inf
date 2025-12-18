@@ -1,79 +1,56 @@
+;
+; MouseLikeTouchPad_I2C.inf
+;
+
 [Version]
-Signature = "$WINDOWS NT$"
-Class = HIDClass
-ClassGuid = {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
-Provider = %ManufacturerName%
-CatalogFile = MouseLikeTouchPad_I2C.cat
-PnpLockdown=1	
-DriverVer = 05/17/2024,1.1.0.0
+Signature="$WINDOWS NT$"
+Class=HIDClass
+ClassGuid={745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Provider=%ManufacturerName%
+CatalogFile=MouseLikeTouchPad_I2C.cat
+DriverVer=12/18/2025,1.0.0.0
+PnpLockDown=1
 
 [DestinationDirs]
 DefaultDestDir = 12
-
-[ControlFlags]
-ExcludeFromSelect = *
+MouseLikeTouchPad_I2C_Device_CoInstaller_CopyFiles = 11
 
 [SourceDisksNames]
-99 = %DiskName%,,,""
+1 = %DiskName%,,,""
 
 [SourceDisksFiles]
-MouseLikeTouchPad_I2C.sys  = 99,,
+MouseLikeTouchPad_I2C.sys  = 1,,
+;
+
+;*****************************************
+; Install Section
+;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=MouseLikeTouchPad_I2C,NTamd64...1
+%ManufacturerName%=Standard,NT$ARCH$
 
-[MouseLikeTouchPad_I2C.NTamd64...1]
-;%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, Hid\MouseLikeTouchPad_I2C;//ACPI\PNP0C50，兼容ID最新windows系统已经不可用了
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\MLTP0001;//jxleyo仿鼠标触摸板MLTP标准I2C触摸板设备ID;
-
-
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\MSFT0001;//微软标准I2C触摸板设备ID，小新系列、yoga系列、拯救者系列
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_SYNA&DEV_2BA6;//联想 yoga pro 16 aura 2025款
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_SYNA&DEV_8018;//联想thinkpad T14 G3 2022款
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_06CB&DEV_0001;//联想小新pro16 2021款
-
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_ELAN&DEV_0406;//雷蛇灵刃15 2022款、雷蛇灵刃16 2023款，已测试手势操作不佳，混合报告模式
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_DELL&DEV_0945;;//ACPI\DLL0945;戴尔 Dell XPS15 9510、9310 2021款、Dell Precision 5560。
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_04F3;//XPS13 9320、XPS15 9520、Dell Precision 5770
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_DELL&DEV_098F;//DELL098F:00 04F3:311C Touchpad;戴尔Dell XPS17 9700 2021款 
-
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_06CB&DEV_CE44;//联想thinkbook16 2023款
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_ASUE&DEV_140D;//华硕 vivobook无畏14 2023款
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_SYNA&DEV_32CD;//惠普 光影精灵8 2022款
-
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_SYNA&DEV_7DAB;//Acer非凡s3 2022款，
-
-;下列机型需单独匹配触摸板数据结构
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_ELAN&DEV_06FA;//联想thinkbook14+ 2024款
-%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ACPI\VEN_CIRQ&DEV_1080;//联想thinkbook14+ 2025款
-
+[Standard.NT$ARCH$]
+%MouseLikeTouchPad_I2C.DeviceDesc%=MouseLikeTouchPad_I2C_Device, ROOT\MouseLikePTP
 
 [MouseLikeTouchPad_I2C_Device.NT]
-CopyFiles=MouseLikeTouchPad_I2C_Device.CopyFiles
+CopyFiles=Drivers_Dir
 
-[MouseLikeTouchPad_I2C_Device.CopyFiles]
-MouseLikeTouchPad_I2C.sys,,,0x100
+[Drivers_Dir]
+MouseLikeTouchPad_I2C.sys
 
 [MouseLikeTouchPad_I2C_Device.NT.HW]
-AddReg = MouseLikeTouchPad_I2C_Device.AddReg,MouseLikeTouchPad_I2C_Device.Configuration.AddReg
-Include=pci.inf
-Needs=PciD3ColdSupported.HW
+AddReg=MouseLikeTouchPad_I2C_Device.NT.AddReg
 
-[MouseLikeTouchPad_I2C_Device.AddReg]
+[MouseLikeTouchPad_I2C_Device.NT.AddReg]
 HKR,,"UpperFilters",0x00010000,"mshidkmdf"
 
-[MouseLikeTouchPad_I2C_Device.Configuration.AddReg]
-HKR,,"EnhancedPowerManagementEnabled",0x00010001,1
-HKR,,"DeviceResetNotificationEnabled",0x00010001,1
-HKR,,"LegacyTouchScaling",0x00010001,0
-HKR,,"DoNotWaitForResetResponse",0x00010001,0
-HKR,,"MouseSensitivity_Index",0x00010001,1
-HKR,,"ThumbScale_Index",0x00010001,1
+;*****************************************
+; Service installation
+;*****************************************
 
-
-;-------------- Service installation
 [MouseLikeTouchPad_I2C_Device.NT.Services]
-AddService = MouseLikeTouchPad_I2C,0x00000002, MouseLikeTouchPad_I2C_Service_Inst
+AddService = MouseLikeTouchPad_I2C,%SPSVCINST_ASSOCSERVICE%, MouseLikeTouchPad_I2C_Service_Inst
+AddService = mshidkmdf,, MsHidKmdf_Service_Inst
 
 [MouseLikeTouchPad_I2C_Service_Inst]
 DisplayName    = %MouseLikeTouchPad_I2C.SVCDESC%
@@ -81,27 +58,20 @@ ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
 StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\MouseLikeTouchPad_I2C.sys
-LoadOrderGroup = Extended Base
 
+[MsHidKmdf_Service_Inst]
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\mshidkmdf.sys
 
-[MouseLikeTouchPad_I2C_Device.NT.Wdf]
-KmdfService =  MouseLikeTouchPad_I2C, MouseLikeTouchPad_I2C_wdfsect
-
-[MouseLikeTouchPad_I2C_wdfsect]
-KmdfLibraryVersion = 1.15
+;*****************************************
+; Strings
+;*****************************************
 
 [Strings]
-ManufacturerName = "jxleyo.HRP"
-HardWareId="*MouseLikeTouchPad HidI2C"
-DiskName = "MouseLikeTouchPad HidI2C Installation Disk"
-MouseLikeTouchPad_I2C.DeviceDesc = "MouseLikeTouchPad HidI2C Device"
-MouseLikeTouchPad_I2C.SVCDESC = "MouseLikeTouchPad HidI2C Device"
-
-;Non-Localizable
-SERVICE_KERNEL_DRIVER  = 0x1 
-SERVICE_ERROR_IGNORE   = 0x0 
-SERVICE_ERROR_NORMAL   = 0x1 
-SERVICE_ERROR_SEVERE   = 0x2 
-SERVICE_ERROR_CRITICAL = 0x3 
-
-;REG_DWORD             = 0x00010001
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="MouseLikeTouchPad Developer"
+DiskName = "MouseLikeTouchPad_I2C Installation Disk"
+MouseLikeTouchPad_I2C.DeviceDesc = "MouseLikeTouchPad PTP Device"
+MouseLikeTouchPad_I2C.SVCDESC = "MouseLikeTouchPad PTP Service"

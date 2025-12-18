@@ -1,0 +1,41 @@
+name: Build Driver
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Initialize WDK Environment
+      run: |
+        if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\ewdk.ps1") {
+          . "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x86\ewdk.ps1"
+        }
+        
+    - name: Build Driver (Release x64)
+      run: msbuild MouseLikeTouchPad_I2C.sln /p:Configuration="Release" /p:Platform="x64" /p:SignMode=Off /t:Rebuild
+
+    - name: Build Test App
+      run: |
+        cd Test
+        cl InjectTouch.cpp user32.lib setupapi.lib /Fe:InjectTouch.exe
+
+    - name: Upload Driver Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: MouseLikePTP_Driver
+        path: |
+          x64/Release/MouseLikeTouchPad_I2C.sys
+          x64/Release/MouseLikeTouchPad_I2C.inf
+          x64/Release/MouseLikeTouchPad_I2C.cat
+          Test/InjectTouch.exe

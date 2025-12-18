@@ -40,16 +40,16 @@ typedef struct _ACPI_DEVICE_SETTINGS
 
 #include "pshpack1.h"
 
-#define STABLE_INTERVAL_FingerSeparated_MSEC   20   // ��ָ�ֿ�������������ȶ�ʱ����
-#define STABLE_INTERVAL_FingerClosed_MSEC      100   // ��ָ��£������������ȶ�ʱ���� 
+#define STABLE_INTERVAL_FingerSeparated_MSEC   20   // 手指分开按到触摸板的稳定时间间隔
+#define STABLE_INTERVAL_FingerClosed_MSEC      100   // 手指并拢按到触摸板的稳定时间间隔 
 
-#define MouseReport_INTERVAL_MSEC         8   // ��걨����ʱ��ms����Ƶ��125hzΪ��׼
-#define ButtonPointer_Interval_MSEC      200   // ��������Ҽ���ָ��������ʱ��ms��150-200ms������
+#define MouseReport_INTERVAL_MSEC         8   // 鼠标报告间隔时间ms，以频率125hz为基准
+#define ButtonPointer_Interval_MSEC      200   // 鼠标左中右键与指针操作间隔时间ms，150-200ms都可以
 
-#define Jitter_Offset         10    // ������������΢������λ����ֵ
+#define Jitter_Offset         10    // 修正触摸点轻微抖动的位移阈值
 
-#define SCROLL_OFFSET_THRESHOLD_X      100   // ����λ����X��ֵ 
-#define SCROLL_OFFSET_THRESHOLD_Y      100   // ����λ����Y��ֵ 
+#define SCROLL_OFFSET_THRESHOLD_X      100   // 滚动位移量X阈值 
+#define SCROLL_OFFSET_THRESHOLD_Y      100   // 滚动位移量Y阈值 
 
 
 
@@ -76,46 +76,46 @@ typedef struct _PTP_REPORT {
 CHAR UnitExponent_Table[16] ={0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,1};
 
 double MouseSensitivityTable[3] = { 0.8,1.0,1.25};
-double ThumbScaleTable[3] = { 0.8,1.0,1.25 };////Ĭ��ThumbScale=1.0ʱ����ָ����18mm��thumb_WidthΪ��׼
+double ThumbScaleTable[3] = { 0.8,1.0,1.25 };////默认ThumbScale=1.0时以中指宽度18mm宽thumb_Width为基准
 
 
 
 typedef struct _PTP_PARSER {
 
-    //����׷�ٵ���ָ����
+    //保存追踪的手指数据
     PTP_REPORT lastFinger;
     PTP_REPORT currentFinger;
 
-    char nMouse_Pointer_CurrentIndex; //���嵱ǰ���ָ�봥������������������ţ�-1Ϊδ����
-    char nMouse_LButton_CurrentIndex; //���嵱ǰ��������������������������ţ�-1Ϊδ����
-    char nMouse_RButton_CurrentIndex; //���嵱ǰ����Ҽ���������������������ţ�-1Ϊδ����
-    char nMouse_MButton_CurrentIndex; //���嵱ǰ����м���������������������ţ�-1Ϊδ����
-    char nMouse_Wheel_CurrentIndex; //���嵱ǰ�����ָ����ο���ָ��������������������ţ�-1Ϊδ����
+    char nMouse_Pointer_CurrentIndex; //定义当前鼠标指针触摸点坐标的数据索引号，-1为未定义
+    char nMouse_LButton_CurrentIndex; //定义当前鼠标左键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_RButton_CurrentIndex; //定义当前鼠标右键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_MButton_CurrentIndex; //定义当前鼠标中键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_Wheel_CurrentIndex; //定义当前鼠标滚轮辅助参考手指触摸点坐标的数据索引号，-1为未定义
 
-    char nMouse_Pointer_LastIndex; //�����ϴ����ָ�봥������������������ţ�-1Ϊδ����
-    char nMouse_LButton_LastIndex; //�����ϴ���������������������������ţ�-1Ϊδ����
-    char nMouse_RButton_LastIndex; //�����ϴ�����Ҽ���������������������ţ�-1Ϊδ����
-    char nMouse_MButton_LastIndex; //�����ϴ�����м���������������������ţ�-1Ϊδ����
-    char nMouse_Wheel_LastIndex; //�����ϴ������ָ����ο���ָ��������������������ţ�-1Ϊδ����
+    char nMouse_Pointer_LastIndex; //定义上次鼠标指针触摸点坐标的数据索引号，-1为未定义
+    char nMouse_LButton_LastIndex; //定义上次鼠标左键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_RButton_LastIndex; //定义上次鼠标右键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_MButton_LastIndex; //定义上次鼠标中键触摸点坐标的数据索引号，-1为未定义
+    char nMouse_Wheel_LastIndex; //定义上次鼠标滚轮辅助参考手指触摸点坐标的数据索引号，-1为未定义
 
-    BOOLEAN bMouse_Wheel_Mode; //����������״̬��0Ϊ����δ���1Ϊ���ּ���
-    BOOLEAN bMouse_Wheel_Mode_JudgeEnable;//�����Ƿ��������б�
+    BOOLEAN bMouse_Wheel_Mode; //定义鼠标滚轮状态，0为滚轮未激活，1为滚轮激活
+    BOOLEAN bMouse_Wheel_Mode_JudgeEnable;//定义是否开启滚轮判别
 
-    BOOLEAN bPtpReportCollection;//���Ƽ��ϱ�־
-    BOOLEAN bGestureCompleted;//���Ʋ���������־
+    BOOLEAN bPtpReportCollection;//手势集合标志
+    BOOLEAN bGestureCompleted;//手势操作结束标志
 
-    LARGE_INTEGER MousePointer_DefineTime;//���ָ�붨��ʱ�䣬���ڼ��㰴�����ʱ���������ж�����м�͹��ֲ���
-    float TouchPad_ReportInterval;//���崥���屨����ʱ��
+    LARGE_INTEGER MousePointer_DefineTime;//鼠标指针定义时间，用于计算按键间隔时间来区分判定鼠标中间和滚轮操作
+    float TouchPad_ReportInterval;//定义触摸板报告间隔时间
 
-    LARGE_INTEGER JitterFixStartTime; // ���������㶶������ʱ���ʱ��
+    LARGE_INTEGER JitterFixStartTime; // 修正触摸点抖动修正时间计时器
 
-    float Scroll_TotalDistanceX; //��������ۼƹ�������X
-    float Scroll_TotalDistanceY; //��������ۼƹ�������Y
+    float Scroll_TotalDistanceX; //定义鼠标累计滚动距离X
+    float Scroll_TotalDistanceY; //定义鼠标累计滚动距离Y
 
     ULONG tick_Count;
-    LARGE_INTEGER last_Ticktime; //�ϴα����ʱ
-    LARGE_INTEGER current_Ticktime;//��ǰ�����ʱ
-    LARGE_INTEGER ticktime_Interval;//������ʱ��
+    LARGE_INTEGER last_Ticktime; //上次报告计时
+    LARGE_INTEGER current_Ticktime;//当前报告计时
+    LARGE_INTEGER ticktime_Interval;//报告间隔时间
 
     //
     ULONG physicalMax_X;
@@ -128,26 +128,26 @@ typedef struct _PTP_PARSER {
     DOUBLE physical_Width_mm;
     DOUBLE  physical_Height_mm;
 
-    //������ָͷ�ߴ��С
-    float thumb_Width;//��ָͷ����
-    float thumb_Height;//��ָͷ�߶�
-    float thumb_Scale;//��ָͷ�ߴ����ű���
-    float FingerMinDistance;//������Ч��������ָ��С����
-    float FingerClosedThresholdDistance;//����������ָ��£ʱ����С����
-    float FingerMaxDistance;//������Ч��������ָ������
-    float TouchPad_DPMM_x;//���崥����ֱ���
-    float TouchPad_DPMM_y;//���崥����ֱ���
-    float PointerSensitivity_x;//����ָ�������ȼ�ָ����ƶ������ű���
-    float PointerSensitivity_y;//����ָ�������ȼ�ָ����ƶ������ű���
+    //定义手指头尺寸大小
+    float thumb_Width;//手指头宽度
+    float thumb_Height;//手指头高度
+    float thumb_Scale;//手指头尺寸缩放比例
+    float FingerMinDistance;//定义有效的相邻手指最小距离
+    float FingerClosedThresholdDistance;//定义相邻手指合拢时的最小距离
+    float FingerMaxDistance;//定义有效的相邻手指最大距离
+    float TouchPad_DPMM_x;//定义触摸板分辨率
+    float TouchPad_DPMM_y;//定义触摸板分辨率
+    float PointerSensitivity_x;//定义指针灵敏度即指针点移动量缩放比例
+    float PointerSensitivity_y;//定义指针灵敏度即指针点移动量缩放比例
 
-    ULONG StartY_TOP; //����󴥺���YֵΪ���봥���嶥��10mm����Y����
-    ULONG StartX_LEFT; //���������XֵΪ���봥�������������Ҳദ��X����
-    ULONG StartX_RIGHT; //���������XֵΪ���봥�������������Ҳദ��X����
+    ULONG StartY_TOP; //起点误触横线Y值为距离触摸板顶部10mm处的Y坐标
+    ULONG StartX_LEFT; //起点误触竖线X值为距离触摸板中心线左右侧处的X坐标
+    ULONG StartX_RIGHT; //起点误触竖线X值为距离触摸板中心线左右侧处的X坐标
 
-    ULONG CornerX_LEFT; //������߽ǹ��ܼ�����߽��X����
-    ULONG CornerX_RIGHT; //������߽ǹ��ܼ�����߽��X����
+    ULONG CornerX_LEFT; //触摸板边角功能键区域边界的X坐标
+    ULONG CornerX_RIGHT; //触摸板边角功能键区域边界的X坐标
 
-    BOOLEAN bPhysicalButtonUp;//��������״̬
+    BOOLEAN bPhysicalButtonUp;//物理按键状态
 
 } PTP_PARSER, * PPTP_PARSER;
 
@@ -276,8 +276,8 @@ typedef struct _DEVICE_CONTEXT
     UCHAR REPORTID_FUNCTION_SWITCH;
     UCHAR REPORTSIZE_FUNCTION_SWITCH;
 
-    UCHAR REPORTID_LATENCY;//�ӳ�ģʽ
-    UCHAR REPORTID_CONFIG_PTP_HAPTICS_ID;//���ط�������SimpleHapticsController
+    UCHAR REPORTID_LATENCY;//延迟模式
+    UCHAR REPORTID_CONFIG_PTP_HAPTICS_ID;//触控反馈配置SimpleHapticsController
 
     BOOLEAN  SetFeatureReady; 
     BOOLEAN  SetInputModeOK;
@@ -289,7 +289,7 @@ typedef struct _DEVICE_CONTEXT
     BOOLEAN bSetAAPThresholdOK;
 
     //MouseLikeTouchpad Paser context
-    PTP_PARSER  tp_settings;  //PTP_PARSER����
+    PTP_PARSER  tp_settings;  //PTP_PARSER数据
 
     UCHAR MouseSensitivity_Index;
     double MouseSensitivity_Value;
@@ -297,14 +297,14 @@ typedef struct _DEVICE_CONTEXT
     UCHAR ThumbScale_Index;
     double ThumbScale_Value;
     
-    BOOLEAN bWheelDisabled;//��ǰ���ֹ��ܿ����ر�״̬
-    BOOLEAN bWheelScrollMode;//����������ʵ�ַ�ʽ��TRUEΪģ�������֣�FALSEΪ������˫ָ��������
+    BOOLEAN bWheelDisabled;//当前滚轮功能开启关闭状态
+    BOOLEAN bWheelScrollMode;//定义鼠标滚轮实现方式，TRUE为模仿鼠标滚轮，FALSE为触摸板双指滑动手势
 
     UCHAR DeviceDescriptorFingerCount;
 
-    BOOLEAN bMouseLikeTouchPad_Mode;//�л������ʽ��������windowsԭ���PTP��ȷʽ�����������ʽ
+    BOOLEAN bMouseLikeTouchPad_Mode;//切换仿鼠标式触摸板与windows原版的PTP精确式触摸板操作方式
 
-    UNICODE_STRING strCurrentUserSID;//��ǰ��¼�û���SID
+    UNICODE_STRING strCurrentUserSID;//当前登录用户的SID
 
 } DEVICE_CONTEXT, * PDEVICE_CONTEXT;
 
@@ -351,7 +351,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(REQUEST_CONTEXT, GetRequestContext);
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(MEMORY_CONTEXT, GetMemoryContext);
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(WORKITEM_CONTEXT, GetWorkItemContext);
 
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(HID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO, _HidGetIdleCallbackInfo);//ԭ��ȱʧ����������
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(HID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO, _HidGetIdleCallbackInfo);//原先缺失，后续添加
 
 typedef enum HID_COMMAND
 {
@@ -424,7 +424,7 @@ DEFINE_GUID(ACPI_DSM_GUID_HIDI2C,
 #define EXPECTED_IOCTL_ACPI_GET_DEVICE_INFORMATION_STRING_LENGTH 100
 
 // Default timeout for a Request sent to a IO Target 1 second
-const ULONGLONG HIDI2C_REQUEST_DEFAULT_TIMEOUT = 1000;//ԭ�ȵ�λΪ��̫���Ϊms
+const ULONGLONG HIDI2C_REQUEST_DEFAULT_TIMEOUT = 1000;//原先单位为秒太大改为ms
 //
 // Tag used for pool allocations.
 #define HIDI2C_POOL_TAG 'MLTP'
@@ -437,7 +437,31 @@ const ULONGLONG HIDI2C_REQUEST_DEFAULT_TIMEOUT = 1000;//ԭ�ȵ�λΪ��̫���Ϊms
 
 #define MOUSEREPORT_BUFFER_SIZE  sizeof(mouse_report_t)
 
-#define IOCTL_INTERNAL_MOUSE_REPORT CTL_CODE(FILE_DEVICE_MOUSE,0x800,METHOD_BUFFERED,FILE_ANY_ACCESS)//�Զ���ioctl
+#define IOCTL_INTERNAL_MOUSE_REPORT CTL_CODE(FILE_DEVICE_MOUSE,0x800,METHOD_BUFFERED,FILE_ANY_ACCESS)//自定义ioctl
+
+#define IOCTL_INJECT_TOUCH_DATA CTL_CODE(FILE_DEVICE_MOUSE, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+// {2FAC259E-9E9A-4C40-983C-123456789ABC}
+DEFINE_GUID(GUID_DEVINTERFACE_MOUSELIKEPTP,
+    0x2fac259e, 0x9e9a, 0x4c40, 0x98, 0x3c, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc);
+
+typedef struct _INJECT_FINGER {
+    UCHAR CONFIDENCE : 1;
+    UCHAR TIPSWITCH : 1;
+    UCHAR CONTACTID : 6;
+    USHORT X;
+    USHORT Y;
+    UCHAR Confidence; // Redundant but keeping simple style if needed, mimicking PTP_CONTACT structure
+    UCHAR TipSwitch;
+    UCHAR ContactID;
+} INJECT_FINGER, * PINJECT_FINGER;
+
+typedef struct _INJECT_TOUCH_REPORT {
+    INJECT_FINGER Fingers[5];
+    USHORT ScanTime;
+    UCHAR ContactCount;
+    UCHAR IsButtonClicked;
+} INJECT_TOUCH_REPORT, * PINJECT_TOUCH_REPORT;
 
 #define FUNCTION_FROM_CTL_CODE(ctrlCode) (((ULONG)((ctrlCode) & 0x3FFC)) >> 2)
 
@@ -672,7 +696,7 @@ HidSetReport(
     HID_REPORT_TYPE ReportType
 );
 
-//�󲿷�usage�Ѿ���hidusage.h������,hidsdi.h������hidusage.h
+//大部分usage已经在hidusage.h定义了,hidsdi.h包含了hidusage.h
 // HID report descriptor constants
 #define HID_TYPE_BEGIN_COLLECTION 0xA1
 #define HID_TYPE_END_COLLECTION 0xC0
@@ -780,8 +804,8 @@ HidSetReport(
 
 
 
-//ReportIDΪ������Ϊ�ϲ��������ṩ�ı���id���ϲ��෢�͸��²�������report����������ʱ��Ҫ�滻��ʵ�ʵ�ReportID���ұ������ݸ�ʽҲҪ����ʵ�ʵ��²����������·�װ,��������Ҫ��ǰ��ȡhid������������ȷ����ȷ����ֵ
-//ÿ��REPORTID_���벻ͬ�����ֱ�����𣬲���ֵ��1 - 255֮��
+//ReportID为本驱动为上层类驱动提供的报告id，上层类发送给下层驱动的report经过本驱动时需要替换成实际的ReportID并且报告数据格式也要按照实际的下层描述符重新封装,本驱动需要提前获取hid描述符报告来确定正确的数值
+//每个REPORTID_必须不同以区分报告类别，并且值在1 - 255之间
 #define FAKE_REPORTID_MOUSE 0x02
 #define FAKE_REPORTID_MULTITOUCH 0x05
 #define FAKE_REPORTID_DEVICE_CAPS 0x04
@@ -798,7 +822,7 @@ HidSetReport(
 #define FAKE_REPORTID_VendorDefined_E 0x0e
 
 
-//touchpad������
+//touchpad描述符
 #define PTP_FINGER_COLLECTION \
     0xa1, 0x02,                         /*   COLLECTION (Logical)     */ \
     0x15, 0x00,                         /*       LOGICAL_MINIMUM (0)     */ \
@@ -822,7 +846,7 @@ HidSetReport(
     0x26, 0x7c, 0x05,                   /*       LOGICAL_MAXIMUM (1404)     */ \
     0x75, 0x10,                         /*       REPORT_SIZE (16)     */ \
     0x55, 0x0e,                         /*       UNIT_EXPONENT (-2)     */ \
-    0x65, 0x11,                         /*       UNIT(cm����)     */ \
+    0x65, 0x11,                         /*       UNIT(cm厘米)     */ \
     0x09, 0x30,                         /*     USAGE (X)     */ \
     0x35, 0x00,                         /*       PHYSICAL_MINIMUM (0)     */ \
     0x46, 0x90, 0x04,                   /*       PHYSICAL_MAXIMUM (1168)     */ \
@@ -832,7 +856,7 @@ HidSetReport(
     0x26, 0x60, 0x03,                   /*       LOGICAL_MAXIMUM (864)     */ \
     0x09, 0x31,                         /*     USAGE (Y)     */ \
     0x81, 0x02,                         /*       INPUT (Data,Var,Abs)     */ \
-    0xc0                               /*   END_COLLECTION     ע�ⲻ��Ҫ���Ž�β*/ \
+    0xc0                               /*   END_COLLECTION     注意不需要逗号结尾*/ \
 \
 
 const unsigned char ParallelMode_PtpReportDescriptor[] = {
@@ -840,37 +864,37 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
     0x05, 0x01, // USAGE_PAGE(Generic Desktop)
     0x09, 0x02, //   USAGE(Mouse)
     0xA1, 0x01, //   COLLECTION(APPlication)
-        0x85, FAKE_REPORTID_MOUSE, //     ReportID(Mouse ReportID)  //�����ID���ڿͻ���ͨѶ��;��ʵ��ʹ�ö�дReportʱ��Ҫ��ǰ��ȡhid������������ȷ����ȷ����ֵ
+        0x85, FAKE_REPORTID_MOUSE, //     ReportID(Mouse ReportID)  //构造的ID用于客户端通讯用途，实际使用读写Report时需要提前获取hid描述符报告来确定正确的数值
         0x09, 0x01, //   USAGE(Pointer)
         0xA1, 0x00, //     COLLECTION(Physical)
             0x05, 0x09, //     USAGE_PAGE(Button)
-            0x19, 0x01, //     USAGE_MINIMUM(button 1)   Button ������ λ 0 ����� λ1 �Ҽ��� λ2 �м�
-            0x29, 0x07, //     USAGE_MAXMUM(button 5)  //0x05����������갴������
+            0x19, 0x01, //     USAGE_MINIMUM(button 1)   Button 按键， 位 0 左键， 位1 右键， 位2 中键
+            0x29, 0x07, //     USAGE_MAXMUM(button 5)  //0x05限制最大的鼠标按键数量
             0x15, 0x00, //     LOGICAL_MINIMUM(0)
             0x25, 0x01, //     LOGICAL_MAXIMUM(1)
             0x75, 0x01, //     REPORT_SIZE(1)
-            0x95, 0x07, //     REPORT_COUNT(3)  //0x05��갴������,����4��Back/5��Forward����ǰ�����ܼ�
+            0x95, 0x07, //     REPORT_COUNT(3)  //0x05鼠标按键数量,新增4号Back/5号Forward后退前进功能键
             0x81, 0x02, //     INPUT(Data,Var,Abs)
-            0x95, 0x01, //     REPORT_COUNT(3) //��Ҫ������ٸ�bitʹ�ü�����갴��������n��bitλ��1���ֽ�8bit
-            0x81, 0x03, //     INPUT (Cnst,Var,Abs)////һ��pending��λ��input��Cnst����0x03
+            0x95, 0x01, //     REPORT_COUNT(3) //需要补足多少个bit使得加上鼠标按键数量的n个bit位成1个字节8bit
+            0x81, 0x03, //     INPUT (Cnst,Var,Abs)////一般pending补位的input用Cnst常量0x03
             0x05, 0x01, //     USAGE_PAGE(Generic Desktop)
-            0x09, 0x30, //     USAGE(X)       X�ƶ�
-            0x09, 0x31, //     USAGE(Y)       Y�ƶ�
-            0x09, 0x38, //     USAGE(Wheel)   ��ֱ����
+            0x09, 0x30, //     USAGE(X)       X移动
+            0x09, 0x31, //     USAGE(Y)       Y移动
+            0x09, 0x38, //     USAGE(Wheel)   垂直滚动
             0x15, 0x81, //     LOGICAL_MINIMUM(-127)
             0x25, 0x7F, //     LOGICAL_MAXIMUM(127)
             0x75, 0x08, //     REPORT_SIZE(8)
             0x95, 0x03, //     REPORT_COUNT(3)
-            0x81, 0x06, //     INPUT(Data,Var, Rel) //X,Y,��ֱ�������������� ���ֵ
+            0x81, 0x06, //     INPUT(Data,Var, Rel) //X,Y,垂直滚轮三个参数， 相对值
 
-            //�±�ˮƽ����
+            //下边水平滚动
             0x05, 0x0C, //     USAGE_PAGE (Consumer Devices)
             0x0A, 0x38, 0x02, // USAGE(AC Pan)
             0x15, 0x81, //       LOGICAL_MINIMUM(-127)
             0x25, 0x7F, //       LOGICAL_MAXIMUM(127)
             0x75, 0x08, //       REPORT_SIZE(8)
             0x95, 0x01, //       REPORT_COUNT(1)
-            0x81, 0x06, //       INPUT(data,Var, Rel) //ˮƽ���֣����ֵ
+            0x81, 0x06, //       INPUT(data,Var, Rel) //水平滚轮，相对值
         0xC0,       //       End Connection(PhySical)
     0xC0,       //     End Connection
 
@@ -926,16 +950,16 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
         0x81, 0x03,                         //    INPUT (Constant,Var)
 
         0x05, 0x0d,                         //    USAGE_PAGE (Digitizer)
-        0x85, FAKE_REPORTID_DEVICE_CAPS,    // REPORT_ID (Feature) Ӳ������                  
-        0x09, 0x55,                         //    USAGE (Contact Count Maximum) Ӳ��֧�ֵ��� REPORTID_MAX_COUNT
-        0x09, 0x59,                         //    USAGE (Pad TYpe) ����������
+        0x85, FAKE_REPORTID_DEVICE_CAPS,    // REPORT_ID (Feature) 硬件特性                  
+        0x09, 0x55,                         //    USAGE (Contact Count Maximum) 硬件支持点数 REPORTID_MAX_COUNT
+        0x09, 0x59,                         //    USAGE (Pad TYpe) 触摸板类型
         0x75, 0x04,                         //    REPORT_SIZE (4) 
         0x95, 0x02,                         //    REPORT_COUNT (2)
         0x25, 0x0f,                         //    LOGICAL_MAXIMUM (15)
         0xb1, 0x02,                         //    FEATURE (Data,Var,Abs)
 
         0x85, FAKE_REPORTID_LATENCY_MODE,   //    REPORT_ID   Latency mode feature report id
-        0x09, 0x60,                         //    USAGE (  Latency mode feature report �ӳ�ģʽ���ܱ����Ŀ�ѡ֧��) 
+        0x09, 0x60,                         //    USAGE (  Latency mode feature report 延迟模式功能报表的可选支持) 
         0x75, 0x01,                         //    REPORT_SIZE (1)              
         0x95, 0x01,                         //    REPORT_COUNT (1)    
         0x15, 0x00,                         //       LOGICAL_MINIMUM (0) 
@@ -946,16 +970,16 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
 
         0x85, FAKE_REPORTID_PTPHQA, //   REPORT_ID (PTPHQA) 
         0x06, 0x00, 0xff,                   //    USAGE_PAGE (Vendor Defined)
-        0x09, 0xC5,                         //    USAGE (Vendor Usage 0xC5 ��������֤״̬Blob)
+        0x09, 0xC5,                         //    USAGE (Vendor Usage 0xC5 完整的认证状态Blob)
         0x15, 0x00,                         //    LOGICAL_MINIMUM (0)          
         0x26, 0xff, 0x00,                   //    LOGICAL_MAXIMUM (0xff) 
         0x75, 0x08,                         //    REPORT_SIZE (8)             
         0x96, 0x00, 0x01,                   //    REPORT_COUNT (0x100 (256))     
         0xb1, 0x02,                         //    FEATURE (Data,Var,Abs)
 
-        ////����ժ¼ժ���豸��֤״̬���ܱ�����Windows���� Touchpad �������ϵ������� ��ѡ֧�֡� 
-        ////����������֤״̬ Blob ���Ϊ 8 �� 32 �ֽڶΣ������ǵ��� 256 �ֽڶ�,C6�÷�ָʾ�ֶ��������壬C7�÷�ָʾÿ�εĳ����ֽڶ���
-        ////����ָʾ�� SET FEATURE �з��صĶ�#���豸Ӧ���� GET FEATURE �еĶ� #�͹����ĶΡ�
+        ////以下摘录摘自设备认证状态功能报表的Windows精度 Touchpad 顶级集合的描述符 可选支持。 
+        ////这允许将认证状态 Blob 拆分为 8 个 32 字节段，而不是单个 256 字节段,C6用法指示分段数量定义，C7用法指示每段的长度字节定义
+        ////主机指示在 SET FEATURE 中返回的段#，设备应返回 GET FEATURE 中的段 #和关联的段。
         //0x06, 0x00, 0xff,                   //     USAGE_PAGE (Vendor Defined)  
         //0x85, FAKE_REPORTID_PTPHQA,    //     REPORT_ID (PTPHQA)              
         //0x09, 0xC6,                         //     USAGE (Vendor usage for segment #) 
@@ -1001,8 +1025,8 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
     0xc0,                               // END_COLLECTION
 
     ////Vendor Defined
-    //0x06, 0x00, 0xff,                   //     USAGE_PAGE (Vendor Defined) ��0x06 = HID_TYPE_USAGE_PAGE_2
-    //0x09, 0x01,                         //   USAGE(vendor defined�÷�Usage_x01)   User-mode Application configuration
+    //0x06, 0x00, 0xff,                   //     USAGE_PAGE (Vendor Defined) ，0x06 = HID_TYPE_USAGE_PAGE_2
+    //0x09, 0x01,                         //   USAGE(vendor defined用法Usage_x01)   User-mode Application configuration
     //0xa1, 0x01,                         //   COLLECTION (Application)
     //    0x85, FAKE_REPORTID_VendorDefined_9,              //     REPORT_ID ( ) 
     //    0x09, 0x02,                         // USAGE (Vendor Defined)
@@ -1010,7 +1034,7 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
     //    0x26, 0xff, 0x00,                   //     LOGICAL_MAXIMUM (0xff)  
     //    0x75, 0x08,                         //     REPORT_SIZE (8)
     //    0x95, 0x14,                         //     REPORT_COUNT (20) 
-    //    0x91, 0x02,                         //     OUTPUT (Data,Var,Abs)�������
+    //    0x91, 0x02,                         //     OUTPUT (Data,Var,Abs)输出数据
 
     //    0x85, FAKE_REPORTID_VendorDefined_A,   //     REPORT_ID ( )
     //    0x09, 0x03,                         //   USAGE (Vendor Defined)
@@ -1018,7 +1042,7 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
     //    0x26, 0xff, 0x00,                   //     LOGICAL_MAXIMUM (0xff)  
     //    0x75, 0x08,                         //     REPORT_SIZE (8)
     //    0x95, 0x14,                         //     REPORT_COUNT (20)  
-    //    0x91, 0x02,                         //     OUTPUT (Data,Var,Abs)�������
+    //    0x91, 0x02,                         //     OUTPUT (Data,Var,Abs)输出数据
 
     //    0x85, FAKE_REPORTID_VendorDefined_B,     //     REPORT_ID ( )
     //    0x09, 0x04,                        //   USAGE (Vendor Defined)
@@ -1052,7 +1076,7 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
     //    0x95, 0x01,                         //     REPORT_COUNT (1)  
     //    0xb1, 0x02,                         //     FEATURE (Data,Var,Abs)
 
-    //    ////����֧��HID_USAGE_HAPTIC_INTENSITYѹ��ǿ����������Ŀ�ѡ֧�֡�
+    //    ////用于支持HID_USAGE_HAPTIC_INTENSITY压感强度特征报告的可选支持。
     //    //0x05, 0x0E,                       //   Usage Page (Haptics)
     //    //0x09, 0x01,                       //   Usage (Simple Haptics Controller)
     //    //0xA1, 0x02,                       //   Collection (Logical)
@@ -1068,43 +1092,43 @@ const unsigned char ParallelMode_PtpReportDescriptor[] = {
 };
 
 
-/////////���HID������, �������������ң��� ���֣�ˮƽ�����ʹ�ֱ������, X,Y�������ֵ
-const unsigned char MouseReportDescriptor[] = {//��������ֻ��Ϊ�ϲ�ͻ�������ʹ�ã�ʵ��hid������Ӧ�����²�������ȡ������Ϊ׼
+/////////鼠标HID描述符, 两个按键（左，右）， 滚轮（水平滚动和垂直滚动）, X,Y采用相对值
+const unsigned char MouseReportDescriptor[] = {//本描述符只作为上层客户端驱动使用，实际hid描述符应该以下层驱动读取的数据为准
     ///
     0x05, 0x01, // USAGE_PAGE(Generic Desktop)
     0x09, 0x02, //   USAGE(Mouse)
     0xA1, 0x01, //   COLLECTION(APPlication)
-    0x85, FAKE_REPORTID_MOUSE, //     ReportID(Mouse ReportID)  //��ʱռλ��;��ʵ��ʹ�ö�дReportʱ��Ҫ��ǰ��ȡhid������������ȷ����ȷ����ֵ
+    0x85, FAKE_REPORTID_MOUSE, //     ReportID(Mouse ReportID)  //临时占位用途，实际使用读写Report时需要提前获取hid描述符报告来确定正确的数值
     0x09, 0x01, //   USAGE(Pointer)
         0xA1, 0x00, //     COLLECTION(Physical)
         0x05, 0x09, //     USAGE_PAGE(Button)
-        0x19, 0x01, //     USAGE_MINIMUM(button 1)   Button ������ λ 0 ����� λ1 �Ҽ��� λ2 �м�
-        0x29, 0x03, //     USAGE_MAXMUM(button 3)  //0x03����������갴������
+        0x19, 0x01, //     USAGE_MINIMUM(button 1)   Button 按键， 位 0 左键， 位1 右键， 位2 中键
+        0x29, 0x03, //     USAGE_MAXMUM(button 3)  //0x03限制最大的鼠标按键数量
         0x15, 0x00, //     LOGICAL_MINIMUM(0)
         0x25, 0x01, //     LOGICAL_MAXIMUM(1)
         0x75, 0x01, //     REPORT_SIZE(1)
-        0x95, 0x03, //     REPORT_COUNT(3)  //0x03��갴������
+        0x95, 0x03, //     REPORT_COUNT(3)  //0x03鼠标按键数量
         0x81, 0x02, //     INPUT(Data,Var,Abs)
-        0x95, 0x05, //     REPORT_COUNT(5) //��Ҫ������ٸ�bitʹ�ü�����갴��������3��bitλ��1���ֽ�8bit
-        0x81, 0x03, //     INPUT (Cnst,Var,Abs)////һ��pending��λ��input��Cnst����0x03
+        0x95, 0x05, //     REPORT_COUNT(5) //需要补足多少个bit使得加上鼠标按键数量的3个bit位成1个字节8bit
+        0x81, 0x03, //     INPUT (Cnst,Var,Abs)////一般pending补位的input用Cnst常量0x03
         0x05, 0x01, //     USAGE_PAGE(Generic Desktop)
-        0x09, 0x30, //     USAGE(X)       X�ƶ�
-        0x09, 0x31, //     USAGE(Y)       Y�ƶ�
-        0x09, 0x38, //     USAGE(Wheel)   ��ֱ����
+        0x09, 0x30, //     USAGE(X)       X移动
+        0x09, 0x31, //     USAGE(Y)       Y移动
+        0x09, 0x38, //     USAGE(Wheel)   垂直滚动
         0x15, 0x81, //     LOGICAL_MINIMUM(-127)
         0x25, 0x7F, //     LOGICAL_MAXIMUM(127)
         0x75, 0x08, //     REPORT_SIZE(8)
         0x95, 0x03, //     REPORT_COUNT(3)
-        0x81, 0x06, //     INPUT(Data,Var, Rel) //X,Y,��ֱ�������������� ���ֵ
+        0x81, 0x06, //     INPUT(Data,Var, Rel) //X,Y,垂直滚轮三个参数， 相对值
 
-        //�±�ˮƽ����
+        //下边水平滚动
         0x05, 0x0C, //     USAGE_PAGE (Consumer Devices)
         0x0A, 0x38, 0x02, // USAGE(AC Pan)
         0x15, 0x81, //       LOGICAL_MINIMUM(-127)
         0x25, 0x7F, //       LOGICAL_MAXIMUM(127)
         0x75, 0x08, //       REPORT_SIZE(8)
         0x95, 0x01, //       REPORT_COUNT(1)
-        0x81, 0x06, //       INPUT(data,Var, Rel) //ˮƽ���֣����ֵ
+        0x81, 0x06, //       INPUT(data,Var, Rel) //水平滚轮，相对值
         0xC0,       //       End Connection(PhySical)
     0xC0,       //     End Connection
 
@@ -1122,16 +1146,16 @@ CONST HID_DESCRIPTOR DefaultHidDescriptor = {
 };
 
 
-///���״̬����,��Ӧ��HID���ϱߵı���
+///鼠标状态报告,对应的HID是上边的报告
 #pragma pack(1)
 struct mouse_report_t
 {
     BYTE    report_id;
-    BYTE    button; //0 no press, 1 left, 2 right ; 3 ����ͬʱ���£�������һ�㲻����������
+    BYTE    button; //0 no press, 1 left, 2 right ; 3 左右同时按下，触摸板一般不会有这种事
     CHAR    dx;
     CHAR    dy;
-    CHAR    v_wheel; // ��ֱ
-    CHAR    h_wheel; // ˮƽ
+    CHAR    v_wheel; // 垂直
+    CHAR    h_wheel; // 水平
 };
 #pragma pack()
 

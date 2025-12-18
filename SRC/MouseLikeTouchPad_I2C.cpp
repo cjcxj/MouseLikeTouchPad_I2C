@@ -155,8 +155,8 @@ AcpiGetDeviceMethod(
     acpiInputSize = sizeof(ACPI_EVAL_INPUT_BUFFER_COMPLEX) +
         (sizeof(ACPI_METHOD_ARGUMENT) *
             (ACPI_DSM_INPUT_ARGUMENTS_COUNT - 1)) +
-        sizeof(GUID);//¼ì²éÊÇ·ñ=0x40
-    KdPrint(("AcpiGetDeviceMethod acpiInputSize,%x\n", acpiInputSize)); ////¼ì²éÊÇ·ñ=0x40
+        sizeof(GUID);//æ£€æŸ¥æ˜¯å¦=0x40
+    KdPrint(("AcpiGetDeviceMethod acpiInputSize,%x\n", acpiInputSize)); ////æ£€æŸ¥æ˜¯å¦=0x40
 
     acpiInput = (PACPI_EVAL_INPUT_BUFFER_COMPLEX)HIDI2C_ALLOCATE_POOL(POOL_FLAG_NON_PAGED, acpiInputSize);//HIDI2C_ALLOCATE_POOL(PagedPool, acpiInputSize)
 
@@ -437,11 +437,23 @@ NTSTATUS OnDeviceAdd(_In_ WDFDRIVER Driver, _Inout_ PWDFDEVICE_INIT DeviceInit)
 		return status;
 	}
 
+    // Expose a device interface for the user-mode application
+    DECLARE_CONST_UNICODE_STRING(customInterfaceRef, L"MouseLikePTPInjection");
+    status = WdfDeviceCreateDeviceInterface(
+        Device,
+        &GUID_DEVINTERFACE_MOUSELIKEPTP,
+        &customInterfaceRef
+    );
+    if (!NT_SUCCESS(status)) {
+        KdPrint(("WdfDeviceCreateDeviceInterface failed,%x\n", status));
+        // Not critical failure, but good to know
+    }
+
 	PDEVICE_CONTEXT pDevContext = GetDeviceContext(Device);
 	pDevContext->FxDevice = Device;
 
     WDF_TIMER_CONFIG   timerConfig;
-    WDF_TIMER_CONFIG_INIT(&timerConfig, HidEvtResetTimerFired);//Ä¬ÈÏ ´®ĞĞÖ´ĞĞtimerFunc
+    WDF_TIMER_CONFIG_INIT(&timerConfig, HidEvtResetTimerFired);//é»˜è®¤ ä¸²è¡Œæ‰§è¡ŒtimerFunc
     //timerConfig.AutomaticSerialization = FALSE;
 
     WDF_OBJECT_ATTRIBUTES   timerAttributes;
@@ -470,7 +482,7 @@ NTSTATUS OnDeviceAdd(_In_ WDFDRIVER Driver, _Inout_ PWDFDEVICE_INIT DeviceInit)
 
     WDF_DEVICE_STATE deviceState;
     WDF_DEVICE_STATE_INIT(&deviceState);
-    deviceState.NotDisableable = WdfFalse;//Ôö¼Ó½ûÓÃÇı¶¯¹¦ÄÜ
+    deviceState.NotDisableable = WdfFalse;//å¢åŠ ç¦ç”¨é©±åŠ¨åŠŸèƒ½
     WdfDeviceSetDeviceState(Device, &deviceState);
    
 
@@ -536,7 +548,7 @@ void HidEvtResetTimerFired(WDFTIMER timer)
 
     WdfIoQueueStart(pDevContext->IoctlQueue);//IoctlQueue//
 
-    ////ĞÂÔö
+    ////æ–°å¢
     //if (!pDevContext->HostInitiatedResetActive) {
     //    WDFTIMER  timerHandle = pDevContext->timerHandle;
     //    if (timerHandle) {
@@ -547,7 +559,7 @@ void HidEvtResetTimerFired(WDFTIMER timer)
 
     WDFKEY hKey = NULL;
 
-    //Î±´úÂëºÜ¿ÉÄÜÉÙÁË2¸ö²ÎÊı??
+    //ä¼ªä»£ç å¾ˆå¯èƒ½å°‘äº†2ä¸ªå‚æ•°??
     NTSTATUS status = WdfDeviceOpenRegistryKey(
         Device,
         PLUGPLAY_REGKEY_DEVICE,//1
@@ -626,7 +638,7 @@ VOID OnInternalDeviceIoControl(
                 break;
             }
 
-            //USHORT ReportDescriptorLength = pDevContext->HidSettings.ReportDescriptorLength;//ÉèÖÃÃèÊö·û³¤¶È
+            //USHORT ReportDescriptorLength = pDevContext->HidSettings.ReportDescriptorLength;//è®¾ç½®æè¿°ç¬¦é•¿åº¦
             //HID_DESCRIPTOR HidDescriptor = {0x09, 0x21, 0x0100, 0x00, 0x01, { 0x22, ReportDescriptorLength }  // HidReportDescriptor
             //};
             //KdPrintData("IOCTL_HID_GET_DEVICE_DESCRIPTOR HidDescriptor=", &HidDescriptor, HidDescriptor.bLength);
@@ -656,7 +668,7 @@ VOID OnInternalDeviceIoControl(
             }
     
             //PVOID outbuf = pDevContext->pReportDesciptorData;
-            //LONG outlen = pDevContext->HidSettings.ReportDescriptorLength;//ÉèÖÃÃèÊö·û³¤¶È
+            //LONG outlen = pDevContext->HidSettings.ReportDescriptorLength;//è®¾ç½®æè¿°ç¬¦é•¿åº¦
             //KdPrintData(("IOCTL_HID_GET_REPORT_DESCRIPTOR HidDescriptor=", pDevContext->pReportDesciptorData, outlen);
 
             PVOID outbuf = (PVOID)ParallelMode_PtpReportDescriptor;//(PVOID)ParallelMode_PtpReportDescriptor //(PVOID)MouseReportDescriptor
@@ -724,7 +736,7 @@ VOID OnInternalDeviceIoControl(
         {
             KdPrint(("IOCTL_HID_GET_STRING,%x\n", runtimes_ioControl));
             //status = STATUS_NOT_IMPLEMENTED;
-            status = HidGetString(pDevContext, Request);//´úÂë»áËÀ»ú
+            status = HidGetString(pDevContext, Request);//ä»£ç ä¼šæ­»æœº
             break;
         }  
 
@@ -732,7 +744,7 @@ VOID OnInternalDeviceIoControl(
         //{
         //    KdPrint(("IOCTL_HID_GET_INDEXED_STRING,%x\n", runtimes_ioControl));
         //    //status = STATUS_NOT_IMPLEMENTED;
-        //    status = HidGetString(pDevContext, Request);//´úÂë»áËÀ»ú
+        //    status = HidGetString(pDevContext, Request);//ä»£ç ä¼šæ­»æœº
         //    break;
         //}
 
@@ -1014,7 +1026,7 @@ NTSTATUS OnPostInterruptsEnabled(WDFDEVICE Device, WDF_POWER_DEVICE_STATE Previo
         KdPrint(("OnPostInterruptsEnabled HidReset,%x\n", runtimes_OnPostInterruptsEnabled));
         status = HidReset(pDevContext);  
 
-       // //ĞÂÔö´úÂë£¬°²×°Çı¶¯ºóÊ×´ÎÔËĞĞÖØĞÂ¼Óµç¾ÍÎŞĞèÖØÆô¼ÆËã»ú£¬FirstD0EntryĞèÒªÔÚOnPrepareHardwareÀï³õÊ¼»¯¶ø²»ÄÜÔÚOnD0EntryÀï£¬Ã¿´Î¼Óµç»áÔËĞĞOnD0Entry£¬
+       // //æ–°å¢ä»£ç ï¼Œå®‰è£…é©±åŠ¨åé¦–æ¬¡è¿è¡Œé‡æ–°åŠ ç”µå°±æ— éœ€é‡å¯è®¡ç®—æœºï¼ŒFirstD0Entryéœ€è¦åœ¨OnPrepareHardwareé‡Œåˆå§‹åŒ–è€Œä¸èƒ½åœ¨OnD0Entryé‡Œï¼Œæ¯æ¬¡åŠ ç”µä¼šè¿è¡ŒOnD0Entryï¼Œ
        //if (pDevContext->FirstD0Entry) {
 
        //    status = HidPower(pDevContext, WdfPowerDeviceD3);
@@ -1111,11 +1123,11 @@ NTSTATUS OnPrepareHardware(
 
     pDevContext->HidReportDescriptorSaved = FALSE;
     
-    pDevContext->DeviceDescriptorFingerCount = 0;//ÃèÊö·û¼ÆËãµ¥¸ö±¨¸æÊı¾İ°üÊÖÖ¸ÊıÁ¿
+    pDevContext->DeviceDescriptorFingerCount = 0;//æè¿°ç¬¦è®¡ç®—å•ä¸ªæŠ¥å‘Šæ•°æ®åŒ…æ‰‹æŒ‡æ•°é‡
 
-    pDevContext->HostInitiatedResetActive = FALSE;//ĞÂÔö
+    pDevContext->HostInitiatedResetActive = FALSE;//æ–°å¢
 
-    pDevContext->FirstD0Entry = TRUE;//Çı¶¯Ê×´Î¼ÓµçÔËĞĞ
+    pDevContext->FirstD0Entry = TRUE;//é©±åŠ¨é¦–æ¬¡åŠ ç”µè¿è¡Œ
 
     runtimes_hid = 0;
     runtimes_OnInterruptIsr = 0;
@@ -1174,17 +1186,17 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
         }
     }
 
-    //ºÍÓ²¼şÎŞ¹ØµÄ¶¯Ì¬±äÁ¿±ØĞëÔÚOnD0Entry¼Óµç¹ı³ÌÖĞ³õÊ¼»¯·ñÔòĞİÃßÄ£Ê½ÏÂ»½ĞÑºó±äÁ¿ÓĞ¿ÉÄÜ»á¶ªÊ§¸³Öµ³öÎÊÌâ
-    pDevContext->bSetAAPThresholdOK = FALSE;//Î´ÉèÖÃAAPThreshold
+    //å’Œç¡¬ä»¶æ— å…³çš„åŠ¨æ€å˜é‡å¿…é¡»åœ¨OnD0EntryåŠ ç”µè¿‡ç¨‹ä¸­åˆå§‹åŒ–å¦åˆ™ä¼‘çœ æ¨¡å¼ä¸‹å”¤é†’åå˜é‡æœ‰å¯èƒ½ä¼šä¸¢å¤±èµ‹å€¼å‡ºé—®é¢˜
+    pDevContext->bSetAAPThresholdOK = FALSE;//æœªè®¾ç½®AAPThreshold
     pDevContext->PtpInputModeOn = FALSE;
     pDevContext->SetFeatureReady = TRUE;
     pDevContext->SetInputModeOK = FALSE;
     pDevContext->SetFunSwicthOK = FALSE;
     pDevContext->GetStringStep = 0;
 
-    pDevContext->bMouseLikeTouchPad_Mode = TRUE;//Ä¬ÈÏ³õÊ¼ÖµÎª·ÂÊó±ê´¥Ãş°å²Ù×÷·½Ê½
+    pDevContext->bMouseLikeTouchPad_Mode = TRUE;//é»˜è®¤åˆå§‹å€¼ä¸ºä»¿é¼ æ ‡è§¦æ‘¸æ¿æ“ä½œæ–¹å¼
 
-    //³õÊ¼»¯µ±Ç°µÇÂ¼ÓÃ»§µÄSID
+    //åˆå§‹åŒ–å½“å‰ç™»å½•ç”¨æˆ·çš„SID
     pDevContext->strCurrentUserSID.Buffer = NULL;
     pDevContext->strCurrentUserSID.Length = 0;
     pDevContext->strCurrentUserSID.MaximumLength = 0;
@@ -1192,7 +1204,7 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
     pDevContext->ThumbScale_Index = 1;
     pDevContext->ThumbScale_Value = ThumbScaleTable[pDevContext->ThumbScale_Index];
 
-    //¶ÁÈ¡Ö¸Í·´óĞ¡ÉèÖÃ
+    //è¯»å–æŒ‡å¤´å¤§å°è®¾ç½®
     ULONG ts_idx;
     status = GetRegisterThumbScale(pDevContext, &ts_idx);
     if (!NT_SUCCESS(status))
@@ -1200,7 +1212,7 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
         if (status == STATUS_OBJECT_NAME_NOT_FOUND)//     ((NTSTATUS)0xC0000034L)
         {
             KdPrint(("OnPrepareHardware GetRegisterThumbScale STATUS_OBJECT_NAME_NOT_FOUND,%x\n", status));
-            status = SetRegisterThumbScale(pDevContext, pDevContext->ThumbScale_Index);//³õÊ¼Ä¬ÈÏÉèÖÃ
+            status = SetRegisterThumbScale(pDevContext, pDevContext->ThumbScale_Index);//åˆå§‹é»˜è®¤è®¾ç½®
             if (!NT_SUCCESS(status)) {
                 KdPrint(("OnPrepareHardware SetRegisterThumbScale err,%x\n", status));
             }
@@ -1211,8 +1223,8 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
         }
     }
     else {
-        if (ts_idx > 2) {//Èç¹û¶ÁÈ¡µÄÊıÖµ´íÎó
-            ts_idx = pDevContext->ThumbScale_Index;//»Ö¸´³õÊ¼Ä¬ÈÏÖµ
+        if (ts_idx > 2) {//å¦‚æœè¯»å–çš„æ•°å€¼é”™è¯¯
+            ts_idx = pDevContext->ThumbScale_Index;//æ¢å¤åˆå§‹é»˜è®¤å€¼
         }
         pDevContext->ThumbScale_Index = (UCHAR)ts_idx;
         pDevContext->ThumbScale_Value = ThumbScaleTable[pDevContext->ThumbScale_Index];
@@ -1220,19 +1232,19 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
     }
 
     PTP_PARSER* tp = &pDevContext->tp_settings;
-    //¶¯Ì¬µ÷ÕûÊÖÖ¸Í·´óĞ¡³£Á¿
-    tp->thumb_Scale = pDevContext->ThumbScale_Index;//ÊÖÖ¸Í·³ß´çËõ·Å±ÈÀı£¬
-    tp->FingerMinDistance = 12 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//¶¨ÒåÓĞĞ§µÄÏàÁÚÊÖÖ¸×îĞ¡¾àÀë
-    tp->FingerClosedThresholdDistance = 16 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//¶¨ÒåÏàÁÚÊÖÖ¸ºÏÂ£Ê±µÄ×îĞ¡¾àÀë
-    tp->FingerMaxDistance = tp->FingerMinDistance * 4;//¶¨ÒåÓĞĞ§µÄÏàÁÚÊÖÖ¸×î´ó¾àÀë(FingerMinDistance*4) 
+    //åŠ¨æ€è°ƒæ•´æ‰‹æŒ‡å¤´å¤§å°å¸¸é‡
+    tp->thumb_Scale = pDevContext->ThumbScale_Index;//æ‰‹æŒ‡å¤´å°ºå¯¸ç¼©æ”¾æ¯”ä¾‹ï¼Œ
+    tp->FingerMinDistance = 12 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//å®šä¹‰æœ‰æ•ˆçš„ç›¸é‚»æ‰‹æŒ‡æœ€å°è·ç¦»
+    tp->FingerClosedThresholdDistance = 16 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//å®šä¹‰ç›¸é‚»æ‰‹æŒ‡åˆæ‹¢æ—¶çš„æœ€å°è·ç¦»
+    tp->FingerMaxDistance = tp->FingerMinDistance * 4;//å®šä¹‰æœ‰æ•ˆçš„ç›¸é‚»æ‰‹æŒ‡æœ€å¤§è·ç¦»(FingerMinDistance*4) 
 
 
 
     //
-    pDevContext->MouseSensitivity_Index = 1;//Ä¬ÈÏ³õÊ¼ÖµÎªMouseSensitivityTable´æ´¢±íµÄĞòºÅ1Ïî
-    pDevContext->MouseSensitivity_Value = MouseSensitivityTable[pDevContext->MouseSensitivity_Index];//Ä¬ÈÏ³õÊ¼ÖµÎª1.0
+    pDevContext->MouseSensitivity_Index = 1;//é»˜è®¤åˆå§‹å€¼ä¸ºMouseSensitivityTableå­˜å‚¨è¡¨çš„åºå·1é¡¹
+    pDevContext->MouseSensitivity_Value = MouseSensitivityTable[pDevContext->MouseSensitivity_Index];//é»˜è®¤åˆå§‹å€¼ä¸º1.0
 
-    //¶ÁÈ¡Êó±êÁéÃô¶ÈÉèÖÃ
+    //è¯»å–é¼ æ ‡çµæ•åº¦è®¾ç½®
     ULONG ms_idx;
     status = GetRegisterMouseSensitivity(pDevContext, &ms_idx);
     if (!NT_SUCCESS(status))
@@ -1240,7 +1252,7 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
         if (status == STATUS_OBJECT_NAME_NOT_FOUND)//     ((NTSTATUS)0xC0000034L)
         {
             KdPrint(("OnPrepareHardware GetRegisterMouseSensitivity STATUS_OBJECT_NAME_NOT_FOUND,%x\n", status));
-            status = SetRegisterMouseSensitivity(pDevContext, pDevContext->MouseSensitivity_Index);//³õÊ¼Ä¬ÈÏÉèÖÃ
+            status = SetRegisterMouseSensitivity(pDevContext, pDevContext->MouseSensitivity_Index);//åˆå§‹é»˜è®¤è®¾ç½®
             if (!NT_SUCCESS(status)) {
                 KdPrint(("OnPrepareHardware SetRegisterMouseSensitivity err,%x\n", status));
             }
@@ -1251,8 +1263,8 @@ NTSTATUS OnD0Entry(_In_  WDFDEVICE FxDevice, _In_  WDF_POWER_DEVICE_STATE  FxPre
         }
     }
     else {
-        if (ms_idx > 2) {//Èç¹û¶ÁÈ¡µÄÊıÖµ´íÎó
-            ms_idx = pDevContext->MouseSensitivity_Index;//»Ö¸´³õÊ¼Ä¬ÈÏÖµ
+        if (ms_idx > 2) {//å¦‚æœè¯»å–çš„æ•°å€¼é”™è¯¯
+            ms_idx = pDevContext->MouseSensitivity_Index;//æ¢å¤åˆå§‹é»˜è®¤å€¼
         }
         pDevContext->MouseSensitivity_Index = (UCHAR)ms_idx;
         pDevContext->MouseSensitivity_Value = MouseSensitivityTable[pDevContext->MouseSensitivity_Index];
@@ -1313,8 +1325,8 @@ SpbInitialize(
             switch (pDescriptor->Type)
             {
             case CmResourceTypeConnection:
-                if (pDescriptor->u.Connection.Class == CM_RESOURCE_CONNECTION_CLASS_SERIAL &&//²âÊÔCM_RESOURCE_CONNECTION_CLASS_GPIO//CM_RESOURCE_CONNECTION_CLASS_SERIAL
-                    pDescriptor->u.Connection.Type == CM_RESOURCE_CONNECTION_TYPE_SERIAL_I2C)//²âÊÔCM_RESOURCE_CONNECTION_TYPE_GPIO_IO//CM_RESOURCE_CONNECTION_TYPE_SERIAL_I2C
+                if (pDescriptor->u.Connection.Class == CM_RESOURCE_CONNECTION_CLASS_SERIAL &&//æµ‹è¯•CM_RESOURCE_CONNECTION_CLASS_GPIO//CM_RESOURCE_CONNECTION_CLASS_SERIAL
+                    pDescriptor->u.Connection.Type == CM_RESOURCE_CONNECTION_TYPE_SERIAL_I2C)//æµ‹è¯•CM_RESOURCE_CONNECTION_TYPE_GPIO_IO//CM_RESOURCE_CONNECTION_TYPE_SERIAL_I2C
                 {
                     FxDeviceContext->SpbConnectionId.LowPart = pDescriptor->u.Connection.IdLowPart;
                     FxDeviceContext->SpbConnectionId.HighPart = pDescriptor->u.Connection.IdHighPart;
@@ -1612,7 +1624,7 @@ SpbWrite(
 
         WDF_REQUEST_SEND_OPTIONS sendOptions;
         WDF_REQUEST_SEND_OPTIONS_INIT(&sendOptions, WDF_REQUEST_SEND_OPTION_TIMEOUT);
-        sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(Timeout);////Ô­ÏÈµ÷ÓÃÕßµÄµ¥Î»ÎªÃëÌ«¾Ş´ó¸ÄÎªms
+        sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(Timeout);////åŸå…ˆè°ƒç”¨è€…çš„å•ä½ä¸ºç§’å¤ªå·¨å¤§æ”¹ä¸ºms
 
         status = WdfIoTargetSendWriteSynchronously(
             FxIoTarget,
@@ -1694,7 +1706,7 @@ SpbWritelessRead(
 
     WDF_REQUEST_SEND_OPTIONS sendOptions;
     WDF_REQUEST_SEND_OPTIONS_INIT(&sendOptions, WDF_REQUEST_SEND_OPTION_TIMEOUT);
-    sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(HIDI2C_REQUEST_DEFAULT_TIMEOUT);//Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(HIDI2C_REQUEST_DEFAULT_TIMEOUT);//åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
 
     //
     ULONG_PTR bytesRead = 0;
@@ -1835,7 +1847,7 @@ SpbWriteWrite(
     }
 
     ULONG bytesReturned = 0;
-    status = ::SpbSequence(FxIoTarget, &sequence, sizeof(sequence), &bytesReturned, HIDI2C_REQUEST_DEFAULT_TIMEOUT);//Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = ::SpbSequence(FxIoTarget, &sequence, sizeof(sequence), &bytesReturned, HIDI2C_REQUEST_DEFAULT_TIMEOUT);//åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
 
     if (!NT_SUCCESS(status))
     {
@@ -1918,7 +1930,7 @@ SpbWriteRead(
     }
 
     ULONG bytesReturned = 0;
-    status = ::SpbSequence(FxIoTarget, &sequence, sizeof(sequence), &bytesReturned, HIDI2C_REQUEST_DEFAULT_TIMEOUT);//Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = ::SpbSequence(FxIoTarget, &sequence, sizeof(sequence), &bytesReturned, HIDI2C_REQUEST_DEFAULT_TIMEOUT);//åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
 
     if (!NT_SUCCESS(status))
     {
@@ -1998,7 +2010,7 @@ SpbSequence(
     {
         WDF_REQUEST_SEND_OPTIONS sendOptions;
         WDF_REQUEST_SEND_OPTIONS_INIT(&sendOptions, WDF_REQUEST_SEND_OPTION_TIMEOUT);
-        sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(Timeout);//////Ô­ÏÈµ÷ÓÃÕßµÄµ¥Î»ÎªÃëÌ«¾Ş´ó¸ÄÎªms
+        sendOptions.Timeout = WDF_REL_TIMEOUT_IN_MS(Timeout);//////åŸå…ˆè°ƒç”¨è€…çš„å•ä½ä¸ºç§’å¤ªå·¨å¤§æ”¹ä¸ºms
 
         status = WdfIoTargetSendIoctlSynchronously(
             FxIoTarget,
@@ -2041,7 +2053,7 @@ NTSTATUS HidPower(PDEVICE_CONTEXT pDevContext, SHORT PowerState)
     WDFIOTARGET IoTarget = pDevContext->SpbIoTarget;
 
     USHORT state = PowerState | 0x800;
-    status = SpbWrite(IoTarget, RegisterAddress, (PUCHAR)&state, 2, 5* HIDI2C_REQUEST_DEFAULT_TIMEOUT);//Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = SpbWrite(IoTarget, RegisterAddress, (PUCHAR)&state, 2, 5* HIDI2C_REQUEST_DEFAULT_TIMEOUT);//åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
     if (!NT_SUCCESS(status)) {
         KdPrint(("HidPower SpbWrite failed,%x\n", status));
     }
@@ -2065,7 +2077,7 @@ NTSTATUS HidReset(PDEVICE_CONTEXT pDevContext)
 
     DECLARE_CONST_UNICODE_STRING(ValueNameString, L"DoNotWaitForResetResponse");
 
-    //Î±´úÂëºÜ¿ÉÄÜÉÙÁË2¸ö²ÎÊı??
+    //ä¼ªä»£ç å¾ˆå¯èƒ½å°‘äº†2ä¸ªå‚æ•°??
     status = WdfDeviceOpenRegistryKey(
         device,
         PLUGPLAY_REGKEY_DEVICE,//1
@@ -2106,11 +2118,11 @@ NTSTATUS HidReset(PDEVICE_CONTEXT pDevContext)
     if (!value)
     {      
         WdfIoQueueStopSynchronously(pDevContext->IoctlQueue);
-        WdfTimerStart(pDevContext->timerHandle, WDF_REL_TIMEOUT_IN_MS(400));//400,²»Ö§³Ö20msÒÔÏÂ
+        WdfTimerStart(pDevContext->timerHandle, WDF_REL_TIMEOUT_IN_MS(400));//400,ä¸æ”¯æŒ20msä»¥ä¸‹
         KdPrint(("HidReset WdfTimerStart timerHandle,%x\n", status));
     }
 
-    status = SpbWrite(pDevContext->SpbIoTarget, RegisterAddress, data, 2u, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = SpbWrite(pDevContext->SpbIoTarget, RegisterAddress, data, 2u, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
     if (NT_SUCCESS(status))
     {
         pDevContext->HostInitiatedResetActive = TRUE;
@@ -2157,7 +2169,7 @@ NTSTATUS HidInitialize(PDEVICE_CONTEXT pDevContext, WDF_POWER_DEVICE_STATE  FxPr
 
     WDF_DEVICE_POWER_STATE state;
     state = WdfDeviceGetDevicePowerState(pDevContext->FxDevice);
-    KdPrint(("HidInitialize powerstate,%x\n", state));//²âÊÔÎªWdfDevStatePowerD0Starting
+    KdPrint(("HidInitialize powerstate,%x\n", state));//æµ‹è¯•ä¸ºWdfDevStatePowerD0Starting
 
     if (FxPreviousState != WdfPowerDeviceD3Final)
     {
@@ -2239,8 +2251,8 @@ NTSTATUS HidSendIdleNotification(
     *bRequestPendingFlag = FALSE;
 
     PIRP pIrp = WdfRequestWdmGetIrp(FxRequest);
-    PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(pIrp);//¼´ÊÇPIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocation£»
-    PWORKITEM_CONTEXT pWorkItemContext = (PWORKITEM_CONTEXT)IoStack->Parameters.DeviceIoControl.Type3InputBuffer;//v6ÊÇÖ¸ÕëÒòÎªÇ°ÃæÓĞÖ¸Õë×ª»»
+    PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(pIrp);//å³æ˜¯PIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocationï¼›
+    PWORKITEM_CONTEXT pWorkItemContext = (PWORKITEM_CONTEXT)IoStack->Parameters.DeviceIoControl.Type3InputBuffer;//v6æ˜¯æŒ‡é’ˆå› ä¸ºå‰é¢æœ‰æŒ‡é’ˆè½¬æ¢
 
     if (pWorkItemContext && pWorkItemContext->FxDevice) {
 
@@ -2281,7 +2293,7 @@ NTSTATUS HidGetHidDescriptor(PDEVICE_CONTEXT pDevContext)
 
     NTSTATUS status = STATUS_SUCCESS;
     USHORT RegisterAddress = pDevContext->AcpiSettings.HidDescriptorAddress;
-    PBYTE pHidDescriptorLength = (PBYTE)&pDevContext->HidSettings.HidDescriptorLength;////×¢ÒâpHidDescriptorLengthĞèÒªÓÃÖ¸Õë£¬ÒòÎªºóSpbReadºó±»¸³Öµ¸Ä±äÁËºóĞø*pHidDescriptorLengthµ÷ÓÃĞèÒª
+    PBYTE pHidDescriptorLength = (PBYTE)&pDevContext->HidSettings.HidDescriptorLength;////æ³¨æ„pHidDescriptorLengthéœ€è¦ç”¨æŒ‡é’ˆï¼Œå› ä¸ºåSpbReadåè¢«èµ‹å€¼æ”¹å˜äº†åç»­*pHidDescriptorLengthè°ƒç”¨éœ€è¦
     pDevContext->HidSettings.HidDescriptorLength = 0;
     pDevContext->HidSettings.InputRegisterAddress = NULL;
     pDevContext->HidSettings.CommandRegisterAddress = NULL;
@@ -2445,7 +2457,7 @@ HidGetReportDescriptor(
     }
 
     ULONG DelayUs = 0;
-    status = SpbRead(pDevContext->SpbIoTarget, RegisterAddress, pReportDesciptorData, ReportLength, DelayUs, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = SpbRead(pDevContext->SpbIoTarget, RegisterAddress, pReportDesciptorData, ReportLength, DelayUs, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
     if (!NT_SUCCESS(status))
     {
         KdPrint(("HidGetReportDescriptor SpbRead failed,%x\n", status));
@@ -2479,13 +2491,13 @@ HidGetString(
 
     PIRP pIrp = WdfRequestWdmGetIrp(Request);
 
-    PIO_STACK_LOCATION IoStack= IoGetCurrentIrpStackLocation(pIrp);//¼´ÊÇPIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocation£»
+    PIO_STACK_LOCATION IoStack= IoGetCurrentIrpStackLocation(pIrp);//å³æ˜¯PIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocationï¼›
     
 
     USHORT stringSizeCb = 0;
     PWSTR string;
 
-    //LONG dw = *(PULONG)IoStack->Parameters.DeviceIoControl.Type3InputBuffer;//×¢ÒâÕâ¸öType3InputBuffer¶ÁÈ¡»áÀ¶ÆÁ£¬ËùÒÔĞèÒª²âÊÔµÃ³öÊµ¼ÊwStrIDµ÷ÓÃË³Ğò
+    //LONG dw = *(PULONG)IoStack->Parameters.DeviceIoControl.Type3InputBuffer;//æ³¨æ„è¿™ä¸ªType3InputBufferè¯»å–ä¼šè“å±ï¼Œæ‰€ä»¥éœ€è¦æµ‹è¯•å¾—å‡ºå®é™…wStrIDè°ƒç”¨é¡ºåº
     //USHORT wStrID = LOWORD(dw);//
     //KdPrint(("HidGetString: wStrID=,%x\n", wStrID));
 
@@ -2606,7 +2618,7 @@ HidWriteReport(
                 *(PUSHORT)pReportData = (USHORT)reportBufferLen + 2;
                 RtlMoveMemory(pReportData + 2, *(const void**)pHidPacket, reportBufferLen);
 
-                status = SpbWrite(pDevContext->SpbIoTarget, RegisterAddress, pReportData, OutputReportLength, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///Ô­ÏÈÎªÃëÌ«´ó¸ÄÎªms
+                status = SpbWrite(pDevContext->SpbIoTarget, RegisterAddress, pReportData, OutputReportLength, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///åŸå…ˆä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
                 if (!NT_SUCCESS(status))
                 {
                     KdPrint(("HidWriteReport SpbWrite failed,%x\n", status));
@@ -3090,8 +3102,8 @@ OnInterruptIsr(
         PTP_REPORT ptpReport;
 
         //Parallel mode
-        if (!pDevContext->PtpInputModeOn) {//ÊäÈë¼¯ºÏÒì³£Ä£Ê½ÏÂ  
-            ////·¢ËÍÔ­Ê¼±¨¸æ
+        if (!pDevContext->PtpInputModeOn) {//è¾“å…¥é›†åˆå¼‚å¸¸æ¨¡å¼ä¸‹  
+            ////å‘é€åŸå§‹æŠ¥å‘Š
             //status = SendOriginalReport(pDevContext, pBuf, Actual_inputReportLength);
             //if (!NT_SUCCESS(status)) {
             //    KdPrint(("OnInterruptIsr SendOriginalReport failed,%x\n", runtimes_ioControl));
@@ -3116,10 +3128,10 @@ OnInterruptIsr(
         KdPrint(("OnInterruptIsr PTP_REPORT.Contacts[0].Y ,%x\n", ptpReport.Contacts[0].Y));
 
 
-        if (!pDevContext->bMouseLikeTouchPad_Mode) {//Ô­°æ´¥¿Ø°å²Ù×÷·½Ê½Ö±½Ó·¢ËÍÔ­Ê¼±¨¸æ
+        if (!pDevContext->bMouseLikeTouchPad_Mode) {//åŸç‰ˆè§¦æ§æ¿æ“ä½œæ–¹å¼ç›´æ¥å‘é€åŸå§‹æŠ¥å‘Š
             PTP_PARSER* tps = &pDevContext->tp_settings;
             if (ptpReport.IsButtonClicked) {
-                //ĞèÒª½øĞĞÀë¿ªÅĞ¶¨£¬·ñÔò±¾´Î»òÏÂ´Î½øÈëMouseLikeTouchPad½âÎöÆ÷ºó¹ØÏµbPhysicalButtonUp»¹»á±»ÄÚ²¿µÄ´úÂë¶ÎÖ´ĞĞÔì³ÉÎ´ÖªÎÊÌâ
+                //éœ€è¦è¿›è¡Œç¦»å¼€åˆ¤å®šï¼Œå¦åˆ™æœ¬æ¬¡æˆ–ä¸‹æ¬¡è¿›å…¥MouseLikeTouchPadè§£æå™¨åå…³ç³»bPhysicalButtonUpè¿˜ä¼šè¢«å†…éƒ¨çš„ä»£ç æ®µæ‰§è¡Œé€ æˆæœªçŸ¥é—®é¢˜
                 tps->bPhysicalButtonUp = FALSE;
                 KdPrint(("OnInterruptIsr bPhysicalButtonUp FALSE,%x\n", FALSE));
             }
@@ -3128,11 +3140,11 @@ OnInterruptIsr(
                     tps->bPhysicalButtonUp = TRUE;
                     KdPrint(("OnInterruptIsr bPhysicalButtonUp TRUE,%x\n", TRUE));
 
-                    if (ptpReport.ContactCount == 5 && !pDevContext->bMouseLikeTouchPad_Mode) {//ÎåÖ¸°´Ñ¹´¥¿Ø°åÎïÀí°´¼üÊ±£¬ÇĞ»»»Ø·ÂÊó±êÊ½´¥Ãş°åÄ£Ê½£¬
+                    if (ptpReport.ContactCount == 5 && !pDevContext->bMouseLikeTouchPad_Mode) {//äº”æŒ‡æŒ‰å‹è§¦æ§æ¿ç‰©ç†æŒ‰é”®æ—¶ï¼Œåˆ‡æ¢å›ä»¿é¼ æ ‡å¼è§¦æ‘¸æ¿æ¨¡å¼ï¼Œ
                         pDevContext->bMouseLikeTouchPad_Mode = TRUE;
                         KdPrint(("OnInterruptIsr bMouseLikeTouchPad_Mode TRUE,%x\n", status));
 
-                        //ÇĞ»»»Ø·ÂÊó±êÊ½´¥Ãş°åÄ£Ê½µÄÍ¬Ê±Ò²»Ö¸´¹öÂÖ¹¦ÄÜºÍÊµÏÖ·½Ê½
+                        //åˆ‡æ¢å›ä»¿é¼ æ ‡å¼è§¦æ‘¸æ¿æ¨¡å¼çš„åŒæ—¶ä¹Ÿæ¢å¤æ»šè½®åŠŸèƒ½å’Œå®ç°æ–¹å¼
                         pDevContext->bWheelDisabled = FALSE;
                         KdPrint(("OnInterruptIsr bWheelDisabled=,%x\n", pDevContext->bWheelDisabled));
                         pDevContext->bWheelScrollMode = FALSE;
@@ -3141,7 +3153,7 @@ OnInterruptIsr(
                 }
             }
 
-            //windowsÔ­°æµÄPTP¾«È·Ê½´¥Ãş°å²Ù×÷·½Ê½£¬Ö±½Ó·¢ËÍPTP±¨¸æ
+            //windowsåŸç‰ˆçš„PTPç²¾ç¡®å¼è§¦æ‘¸æ¿æ“ä½œæ–¹å¼ï¼Œç›´æ¥å‘é€PTPæŠ¥å‘Š
             status = SendPtpMultiTouchReport(pDevContext, &ptpReport, sizeof(PTP_REPORT));
             if (!NT_SUCCESS(status)) {
                 KdPrint(("OnInterruptIsr SendPtpMultiTouchReport ptpReport failed,%x\n", status));
@@ -3149,7 +3161,7 @@ OnInterruptIsr(
            
         }
         else {
-            //MouseLikeTouchPad½âÎöÆ÷
+            //MouseLikeTouchPadè§£æå™¨
             MouseLikeTouchPad_parse(pDevContext, &ptpReport);
         }
 
@@ -3183,13 +3195,13 @@ PowerIdleIrpWorkitem(
     PDEVICE_CONTEXT pDevContext = GetDeviceContext(pWorkItemContext->FxDevice);
     NT_ASSERT(pDevContext != NULL);
 
-    PHID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO idleCallbackInfo = _HidGetIdleCallbackInfo(pWorkItemContext->FxRequest);//??Ğ§¹ûµÈÍ¬ÓëÏÂÁĞ×¢ÊÍµÄ4ĞĞ´úÂë
+    PHID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO idleCallbackInfo = _HidGetIdleCallbackInfo(pWorkItemContext->FxRequest);//??æ•ˆæœç­‰åŒä¸ä¸‹åˆ—æ³¨é‡Šçš„4è¡Œä»£ç 
 
     idleCallbackInfo->IdleCallback(idleCallbackInfo->IdleContext);//
 
     //{
     //    PIRP pIrp = WdfRequestWdmGetIrp(pWorkItemContext->FxRequest);//
-    //    PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(pIrp);//¼´ÊÇPIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocation;
+    //    PIO_STACK_LOCATION IoStack = IoGetCurrentIrpStackLocation(pIrp);//å³æ˜¯PIO_STACK_LOCATION IoStack = Irp->Tail.Overlay.CurrentStackLocation;
     //    PHID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO idleCallbackInfo = (PHID_SUBMIT_IDLE_NOTIFICATION_CALLBACK_INFO)IoStack->Parameters.DeviceIoControl.Type3InputBuffer;
     //    idleCallbackInfo->IdleCallback(idleCallbackInfo->IdleContext);
     //}
@@ -3317,7 +3329,7 @@ PtpReportFeatures(
 
             *certReport->CertificationBlob = DEFAULT_PTP_HQA_BLOB;
             certReport->ReportID = FAKE_REPORTID_PTPHQA;//FAKE_REPORTID_PTPHQA//pDevContext->REPORTID_PTPHQA
-            pDevContext->PtpInputModeOn = TRUE;//²âÊÔ
+            pDevContext->PtpInputModeOn = TRUE;//æµ‹è¯•
 
             KdPrint(("PtpGetFeatures pHidPacket->reportId REPORTID_PTPHQA,%x\n", pHidPacket->reportId));
 
@@ -3550,19 +3562,19 @@ HidSetFeature(
 
     UCHAR reportId = pHidPacket->reportId;
     if (reportId == FAKE_REPORTID_INPUTMODE) {//FAKE_REPORTID_INPUTMODE
-        reportID = pDevContext->REPORTID_INPUT_MODE;//Ìæ»»ÎªÕæÊµÖµ
+        reportID = pDevContext->REPORTID_INPUT_MODE;//æ›¿æ¢ä¸ºçœŸå®å€¼
         reportDataSize = pDevContext->REPORTSIZE_INPUT_MODE;
         reportData = PTP_COLLECTION_WINDOWS;
         KdPrint(("HidSetFeature PTP_COLLECTION_WINDOWS reportDataSize=,%x\n", reportDataSize));
     }
     else if (reportId == FAKE_REPORTID_FUNCTION_SWITCH) {//FAKE_REPORTID_FUNCTION_SWITCH
-        reportID = pDevContext->REPORTID_FUNCTION_SWITCH;//Ìæ»»ÎªÕæÊµÖµ
+        reportID = pDevContext->REPORTID_FUNCTION_SWITCH;//æ›¿æ¢ä¸ºçœŸå®å€¼
         reportDataSize = pDevContext->REPORTSIZE_FUNCTION_SWITCH;
         reportData = PTP_SELECTIVE_REPORT_Button_Surface_ON;
         KdPrint(("HidSetFeature PTP_SELECTIVE_REPORT_Button_Surface_ON reportDataSize=,%x\n", reportDataSize));
     }
     else if (reportId == FAKE_REPORTID_LATENCY_MODE) {//FAKE_REPORTID_LATENCY_MODE
-        reportID = pDevContext->REPORTID_LATENCY_MODE;//Ìæ»»ÎªÕæÊµÖµ
+        reportID = pDevContext->REPORTID_LATENCY_MODE;//æ›¿æ¢ä¸ºçœŸå®å€¼
         reportDataSize = pDevContext->REPORTSIZE_LATENCY_MODE;
         reportData = LATENCY_MODE_REPORT_Normal_Latency;
         KdPrint(("HidSetFeature LATENCY_MODE_REPORT_Normal_Latency reportDataSize=,%x\n", reportDataSize));
@@ -3584,7 +3596,7 @@ HidSetFeature(
     else {
         HeaderLength = 2;
         pReportHeaderData = HeaderData2;
-        *(PUSHORT)pReportHeaderData = 0x0330 | reportID;   //USHORT×ó±ß×Ö½ÚÎªµÍÎ»LowByteÓÒ±ß×Ö½ÚÎª¸ßÎ»HighByte,
+        *(PUSHORT)pReportHeaderData = 0x0330 | reportID;   //USHORTå·¦è¾¹å­—èŠ‚ä¸ºä½ä½LowByteå³è¾¹å­—èŠ‚ä¸ºé«˜ä½HighByte,
         KdPrintData(("HidSetFeature reportID<0xF pReportHeaderData=", pReportHeaderData, HeaderLength));
     }
 
@@ -3598,8 +3610,8 @@ HidSetFeature(
 
     RtlZeroMemory(pFeatureReportData, reportLength);
     *(PUSHORT)pFeatureReportData = reportLength;
-    pFeatureReportData[2] = reportID;//REPORTID_REPORTMODE»òÕßREPORTID_FUNCTION_SWITCH
-    pFeatureReportData[3] = reportData;//PTP_COLLECTION_WINDOWS»òÕßPTP_SELECTIVE_REPORT_Button_Surface_ON
+    pFeatureReportData[2] = reportID;//REPORTID_REPORTMODEæˆ–è€…REPORTID_FUNCTION_SWITCH
+    pFeatureReportData[3] = reportData;//PTP_COLLECTION_WINDOWSæˆ–è€…PTP_SELECTIVE_REPORT_Button_Surface_ON
 
     if (reportID == pDevContext->REPORTID_INPUT_MODE) {//SetType== PTP_FEATURE_INPUT_COLLECTION
         KdPrintData(("HidSetFeature PTP_FEATURE_INPUT_COLLECTION pFeatureReportData=", pFeatureReportData, reportLength));
@@ -3659,13 +3671,13 @@ PtpSetFeature(
 
 
     if (SetType== PTP_FEATURE_INPUT_COLLECTION) {
-        reportID = pDevContext->REPORTID_INPUT_MODE;////reportID//yoga14sÎª0x04,matebookÎª0x03
+        reportID = pDevContext->REPORTID_INPUT_MODE;////reportID//yoga14sä¸º0x04,matebookä¸º0x03
         reportDataSize = pDevContext->REPORTSIZE_INPUT_MODE;
         reportData = PTP_COLLECTION_WINDOWS;
         KdPrint(("PtpSetFeature PTP_COLLECTION_WINDOWS reportDataSize=,%x\n", reportDataSize));
     }
     else {//SetType== PTP_FEATURE_SELECTIVE_REPORTING
-        reportID = pDevContext->REPORTID_FUNCTION_SWITCH;////reportID//yoga14sÎª0x06,matebookÎª0x05
+        reportID = pDevContext->REPORTID_FUNCTION_SWITCH;////reportID//yoga14sä¸º0x06,matebookä¸º0x05
         reportDataSize = pDevContext->REPORTSIZE_FUNCTION_SWITCH;
         reportData = PTP_SELECTIVE_REPORT_Button_Surface_ON;
         KdPrint(("PtpSetFeature PTP_SELECTIVE_REPORT_Button_Surface_ON reportDataSize=,%x\n", reportDataSize));
@@ -3681,7 +3693,7 @@ PtpSetFeature(
     else {
         HeaderLength = 2;
         pReportHeaderData = HeaderData2;
-        *(PUSHORT)pReportHeaderData = 0x0330 | reportID;   //USHORT×ó±ß×Ö½ÚÎªµÍÎ»LowByteÓÒ±ß×Ö½ÚÎª¸ßÎ»HighByte,
+        *(PUSHORT)pReportHeaderData = 0x0330 | reportID;   //USHORTå·¦è¾¹å­—èŠ‚ä¸ºä½ä½LowByteå³è¾¹å­—èŠ‚ä¸ºé«˜ä½HighByte,
         KdPrintData(("PtpSetFeature reportID<0xF pReportHeaderData=", pReportHeaderData, HeaderLength));
     }
 
@@ -3725,8 +3737,8 @@ PtpSetFeature(
 
     RtlZeroMemory(pFeatureReportData, reportLength);
     *(PUSHORT)pFeatureReportData = reportLength;
-    pFeatureReportData[2] = reportID;//REPORTID_REPORTMODE»òÕßREPORTID_FUNCTION_SWITCH
-    pFeatureReportData[3] = reportData;//PTP_COLLECTION_WINDOWS»òÕßPTP_SELECTIVE_REPORT_Button_Surface_ON
+    pFeatureReportData[2] = reportID;//REPORTID_REPORTMODEæˆ–è€…REPORTID_FUNCTION_SWITCH
+    pFeatureReportData[3] = reportData;//PTP_COLLECTION_WINDOWSæˆ–è€…PTP_SELECTIVE_REPORT_Button_Surface_ON
 
     if (SetType == PTP_FEATURE_INPUT_COLLECTION) {
         KdPrintData(("PtpSetFeature PTP_FEATURE_INPUT_COLLECTION pFeatureReportData=", pFeatureReportData, reportLength));
@@ -3774,7 +3786,7 @@ GetReportDescriptor(
     }
 
     ULONG DelayUs = 0;
-    status = SpbRead(pDevContext->SpbIoTarget, RegisterAddress, pReportDesciptorData, ReportLength, DelayUs, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///Ô­ÏÈµ¥Î»ÎªÃëÌ«´ó¸ÄÎªms
+    status = SpbRead(pDevContext->SpbIoTarget, RegisterAddress, pReportDesciptorData, ReportLength, DelayUs, HIDI2C_REQUEST_DEFAULT_TIMEOUT);///åŸå…ˆå•ä½ä¸ºç§’å¤ªå¤§æ”¹ä¸ºms
     if (!NT_SUCCESS(status))
     {
         KdPrint(("GetReportDescriptor SpbRead failed,%x\n", status));
@@ -3809,7 +3821,7 @@ AnalyzeHidReportDescriptor(
     BYTE reportSize = 0;
     USHORT reportCount = 0;
     BYTE lastUsage = 0;
-    BYTE lastCollection = 0;//¸Ä±äÁ¿ÄÜ¹»ÓÃÓÚ×¼È·ÅĞ¶¨PTP¡¢MOUSE¼¯ºÏÊäÈë±¨¸æµÄreportID
+    BYTE lastCollection = 0;//æ”¹å˜é‡èƒ½å¤Ÿç”¨äºå‡†ç¡®åˆ¤å®šPTPã€MOUSEé›†åˆè¾“å…¥æŠ¥å‘Šçš„reportID
     bool inConfigTlc = false;
     bool inTouchTlc = false;
     bool inMouseTlc = false;
@@ -3848,7 +3860,7 @@ AnalyzeHidReportDescriptor(
         else if (type == HID_TYPE_END_COLLECTION) {
             depth--;
 
-            //ÏÂÃæ3¸öTlc×´Ì¬¸üĞÂÊÇÓĞ±ØÒªµÄ£¬¿ÉÒÔ·ÀÖ¹ºóĞøÏà¹Ø¼¯ºÏTlc´íÎóÅĞ¶¨·¢Éú
+            //ä¸‹é¢3ä¸ªTlcçŠ¶æ€æ›´æ–°æ˜¯æœ‰å¿…è¦çš„ï¼Œå¯ä»¥é˜²æ­¢åç»­ç›¸å…³é›†åˆTlcé”™è¯¯åˆ¤å®šå‘ç”Ÿ
             if (depth == 0 && inConfigTlc) {
                 inConfigTlc = false;
                 //KdPrint(("AnalyzeHidReportDescriptor inConfigTlc end,%x\n", 0));
@@ -3907,41 +3919,41 @@ AnalyzeHidReportDescriptor(
             pDevContext->REPORTID_MULTITOUCH_COLLECTION = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_MULTITOUCH_COLLECTION=,%x\n", pDevContext->REPORTID_MULTITOUCH_COLLECTION));
 
-            //ÕâÀï¼ÆËãµ¥¸ö±¨¸æÊı¾İ°üµÄÊÖÖ¸ÊıÁ¿ÓÃÀ´ºóĞøÅĞ¶Ï±¨¸æÄ£Ê½¼°bHybrid_ReportingModeµÄ¸³Öµ
+            //è¿™é‡Œè®¡ç®—å•ä¸ªæŠ¥å‘Šæ•°æ®åŒ…çš„æ‰‹æŒ‡æ•°é‡ç”¨æ¥åç»­åˆ¤æ–­æŠ¥å‘Šæ¨¡å¼åŠbHybrid_ReportingModeçš„èµ‹å€¼
             pDevContext->DeviceDescriptorFingerCount++;
             KdPrint(("AnalyzeHidReportDescriptor DeviceDescriptorFingerCount=,%x\n", pDevContext->DeviceDescriptorFingerCount));
         }
         else if (inMouseTlc && depth == 2 && lastCollection == HID_USAGE_GENERIC_MOUSE  && lastUsage == HID_USAGE_GENERIC_POINTER) {
-            //ÏÂ²ãµÄMouse¼¯ºÏreport±¾Çı¶¯²¢²»»á¶ÁÈ¡£¬Ö»ÊÇ×÷ÎªÊä³öµ½ÉÏ²ãÀàÇı¶¯µÄReportÊ¹ÓÃ
+            //ä¸‹å±‚çš„Mouseé›†åˆreportæœ¬é©±åŠ¨å¹¶ä¸ä¼šè¯»å–ï¼Œåªæ˜¯ä½œä¸ºè¾“å‡ºåˆ°ä¸Šå±‚ç±»é©±åŠ¨çš„Reportä½¿ç”¨
             pDevContext->REPORTID_MOUSE_COLLECTION = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_MOUSE_COLLECTION=,%x\n", pDevContext->REPORTID_MOUSE_COLLECTION));
         }
         else if (inConfigTlc && type == HID_TYPE_FEATURE && lastUsage == HID_USAGE_INPUT_MODE) {
-            pDevContext->REPORTSIZE_INPUT_MODE = (reportSize + 7) / 8;//±¨¸æÊı¾İ×Ü³¤¶È
+            pDevContext->REPORTSIZE_INPUT_MODE = (reportSize + 7) / 8;//æŠ¥å‘Šæ•°æ®æ€»é•¿åº¦
             pDevContext->REPORTID_INPUT_MODE = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_INPUT_MODE=,%x\n", pDevContext->REPORTID_INPUT_MODE));
             KdPrint(("AnalyzeHidReportDescriptor REPORTSIZE_INPUT_MODE=,%x\n", pDevContext->REPORTSIZE_INPUT_MODE));
             continue;
         }
         else if (inConfigTlc && type == HID_TYPE_FEATURE && lastUsage == HID_USAGE_SURFACE_SWITCH || lastUsage == HID_USAGE_BUTTON_SWITCH) {
-            //Ä¬ÈÏ±ê×¼¹æ·¶ÎªHID_USAGE_SURFACE_SWITCHÓëHID_USAGE_BUTTON_SWITCH¸÷1bit×éºÏµÍÎ»³É1¸ö×Ö½ÚHID_USAGE_FUNCTION_SWITCH±¨¸æ
-            pDevContext->REPORTSIZE_FUNCTION_SWITCH = (reportSize + 7) / 8;//±¨¸æÊı¾İ×Ü³¤¶È
+            //é»˜è®¤æ ‡å‡†è§„èŒƒä¸ºHID_USAGE_SURFACE_SWITCHä¸HID_USAGE_BUTTON_SWITCHå„1bitç»„åˆä½ä½æˆ1ä¸ªå­—èŠ‚HID_USAGE_FUNCTION_SWITCHæŠ¥å‘Š
+            pDevContext->REPORTSIZE_FUNCTION_SWITCH = (reportSize + 7) / 8;//æŠ¥å‘Šæ•°æ®æ€»é•¿åº¦
             pDevContext->REPORTID_FUNCTION_SWITCH = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_FUNCTION_SWITCH=,%x\n", pDevContext->REPORTID_FUNCTION_SWITCH));
             KdPrint(("AnalyzeHidReportDescriptor REPORTSIZE_FUNCTION_SWITCH=,%x\n", pDevContext->REPORTSIZE_FUNCTION_SWITCH));
             continue;
         }
         else if (inTouchTlc && type == HID_TYPE_FEATURE && lastUsage == HID_USAGE_CONTACT_COUNT_MAXIMUM || lastUsage == HID_USAGE_PAD_TYPE) {
-            //Ä¬ÈÏ±ê×¼¹æ·¶ÎªHID_USAGE_CONTACT_COUNT_MAXIMUMÓëHID_USAGE_PAD_TYPE¸÷4bit×éºÏµÍÎ»³É1¸ö×Ö½ÚHID_USAGE_DEVICE_CAPS±¨¸æ
-            pDevContext->REPORTSIZE_DEVICE_CAPS = (reportSize + 7) / 8;//±¨¸æÊı¾İ×Ü³¤¶È
+            //é»˜è®¤æ ‡å‡†è§„èŒƒä¸ºHID_USAGE_CONTACT_COUNT_MAXIMUMä¸HID_USAGE_PAD_TYPEå„4bitç»„åˆä½ä½æˆ1ä¸ªå­—èŠ‚HID_USAGE_DEVICE_CAPSæŠ¥å‘Š
+            pDevContext->REPORTSIZE_DEVICE_CAPS = (reportSize + 7) / 8;//æŠ¥å‘Šæ•°æ®æ€»é•¿åº¦
             pDevContext->REPORTID_DEVICE_CAPS = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTSIZE_DEVICE_CAPS=,%x\n", pDevContext->REPORTSIZE_DEVICE_CAPS));
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_DEVICE_CAPS=,%x\n", pDevContext->REPORTID_DEVICE_CAPS));
             continue;
         }
         else if (inTouchTlc && type == HID_TYPE_FEATURE && lastUsage == HID_USAGE_LATENCY_MODE) {
-            //ÑÓ³ÙÄ£Ê½¹¦ÄÜ±¨¸æ//Ä¬ÈÏ±ê×¼¹æ·¶ÎªHID_USAGE_LATENCY_MODEµÍÎ»1bit×éºÏ³É1¸ö×Ö½ÚHID_USAGE_LATENCY_MODE±¨¸æ
-            pDevContext->REPORTSIZE_LATENCY_MODE = (reportSize + 7) / 8;//±¨¸æÊı¾İ×Ü³¤¶È
+            //å»¶è¿Ÿæ¨¡å¼åŠŸèƒ½æŠ¥å‘Š//é»˜è®¤æ ‡å‡†è§„èŒƒä¸ºHID_USAGE_LATENCY_MODEä½ä½1bitç»„åˆæˆ1ä¸ªå­—èŠ‚HID_USAGE_LATENCY_MODEæŠ¥å‘Š
+            pDevContext->REPORTSIZE_LATENCY_MODE = (reportSize + 7) / 8;//æŠ¥å‘Šæ•°æ®æ€»é•¿åº¦
             pDevContext->REPORTID_LATENCY_MODE = reportId;
             KdPrint(("AnalyzeHidReportDescriptor REPORTSIZE_LATENCY_MODE=,%x\n", pDevContext->REPORTSIZE_LATENCY_MODE));
             KdPrint(("AnalyzeHidReportDescriptor REPORTID_LATENCY_MODE=,%x\n", pDevContext->REPORTID_LATENCY_MODE));
@@ -3977,21 +3989,21 @@ AnalyzeHidReportDescriptor(
         }
     }
 
-    //ÅĞ¶Ï´¥Ãş°å±¨¸æÄ£Ê½
-    if (pDevContext->DeviceDescriptorFingerCount < 5) {//5¸öÊÖÖ¸Êı¾İÒÔÏÂ
-        //Single finger hybrid reporting modeµ¥Ö¸»ìºÏ±¨¸æÄ£Ê½È·ÈÏ£¬Çı¶¯²»ÓèÖ§³Ö
+    //åˆ¤æ–­è§¦æ‘¸æ¿æŠ¥å‘Šæ¨¡å¼
+    if (pDevContext->DeviceDescriptorFingerCount < 5) {//5ä¸ªæ‰‹æŒ‡æ•°æ®ä»¥ä¸‹
+        //Single finger hybrid reporting modeå•æŒ‡æ··åˆæŠ¥å‘Šæ¨¡å¼ç¡®è®¤ï¼Œé©±åŠ¨ä¸äºˆæ”¯æŒ
         KdPrint(("AnalyzeHidReportDescriptor bHybrid_ReportingMode Confirm,%x\n", pDevContext->DeviceDescriptorFingerCount));
-        return STATUS_UNSUCCESSFUL;//·µ»ØºóÖÕÖ¹Çı¶¯³ÌĞò
+        return STATUS_UNSUCCESSFUL;//è¿”å›åç»ˆæ­¢é©±åŠ¨ç¨‹åº
     }
 
 
-    //¼ÆËã±£´æ´¥Ãş°å³ß´ç·Ö±æÂÊµÈ²ÎÊı
-    //×ª»»Îªmm³¤¶Èµ¥Î»
-    if (tp->unit == 0x11) {//cm³¤¶Èµ¥Î»
+    //è®¡ç®—ä¿å­˜è§¦æ‘¸æ¿å°ºå¯¸åˆ†è¾¨ç‡ç­‰å‚æ•°
+    //è½¬æ¢ä¸ºmmé•¿åº¦å•ä½
+    if (tp->unit == 0x11) {//cmé•¿åº¦å•ä½
         tp->physical_Width_mm = tp->physicalMax_X * pow(10.0, tp->unitExp) * 10;
         tp->physical_Height_mm = tp->physicalMax_Y * pow(10.0, tp->unitExp) * 10;
     }
-    else {//0x13Îªinch³¤¶Èµ¥Î»
+    else {//0x13ä¸ºinché•¿åº¦å•ä½
         tp->physical_Width_mm = tp->physicalMax_X * pow(10.0, tp->unitExp) * 25.4;
         tp->physical_Height_mm = tp->physicalMax_Y * pow(10.0, tp->unitExp) * 25.4;
     }
@@ -4005,8 +4017,8 @@ AnalyzeHidReportDescriptor(
         return STATUS_UNSUCCESSFUL;
     }
 
-    tp->TouchPad_DPMM_x = float(tp->logicalMax_X / tp->physical_Width_mm);//µ¥Î»Îªdot/mm
-    tp->TouchPad_DPMM_y = float(tp->logicalMax_Y / tp->physical_Height_mm);//µ¥Î»Îªdot/mm
+    tp->TouchPad_DPMM_x = float(tp->logicalMax_X / tp->physical_Width_mm);//å•ä½ä¸ºdot/mm
+    tp->TouchPad_DPMM_y = float(tp->logicalMax_Y / tp->physical_Height_mm);//å•ä½ä¸ºdot/mm
     KdPrint(("AnalyzeHidReportDescriptor TouchPad_DPMM_x=,%x\n", (ULONG)tp->TouchPad_DPMM_x));
     KdPrint(("AnalyzeHidReportDescriptor TouchPad_DPMM_y=,%x\n", (ULONG)tp->TouchPad_DPMM_y));
 
@@ -4015,15 +4027,15 @@ AnalyzeHidReportDescriptor(
     tp->PointerSensitivity_y = tp->TouchPad_DPMM_y / 25;
 
 
-    ////ÆğµãÎó´¥ºáÏßYÖµÎª¾àÀë´¥Ãş°å¶¥²¿10mm´¦µÄY×ø±ê
-    const float  DisabledRegionOffsetSize_top = 10;//¸ÃÖµ¿É¸ù¾İ±Ê¼Ç±¾¼üÅÌºÍ´¥Ãş°å¶¥²¿¾àÀëÊÊµ±µ÷Õû
+    ////èµ·ç‚¹è¯¯è§¦æ¨ªçº¿Yå€¼ä¸ºè·ç¦»è§¦æ‘¸æ¿é¡¶éƒ¨10mmå¤„çš„Yåæ ‡
+    const float  DisabledRegionOffsetSize_top = 10;//è¯¥å€¼å¯æ ¹æ®ç¬”è®°æœ¬é”®ç›˜å’Œè§¦æ‘¸æ¿é¡¶éƒ¨è·ç¦»é€‚å½“è°ƒæ•´
     tp->StartY_TOP = (ULONG)(DisabledRegionOffsetSize_top * tp->TouchPad_DPMM_y);
 
-    //SpaceTouchpadOffsetSizeÎª´¥Ãş°åÖĞĞÄÏß½Ï¿Õ¸ñ¼üÖĞĞÄÏßÆ«ÓÒµÄ¾àÀë£¬È»ºó²»Í¬µÄ´¥Ãş°å³ß´çÒÔ´ËÖĞĞÄÏßÎª¶Ô³ÆÖáÉè¼ÆÎ»ÖÃ²¼¾Ö£¬DisabledX_RIGHT´¥Ãş°åÓÒ²àÇøÓò·ÀÎó´¥·¶Î§¸ü´ó£¬
-    const float SpaceTouchpadOffsetSize = 10;//¸ÃÖµ¸ù¾İ±Ê¼Ç±¾¿Õ¸ñ¼üºÍ´¥Ãş°åÖĞÏÂÑ®µÄ¾àÀëÊÊµ±µ÷Õû,ÁªÏëyogaĞ¡ĞÂthinkbook´ó²¿·ÖÎª0mm¶ÔÆë£¬´ó²¿·Ö±Ê¼Ç±¾ÍÆ¼ö10mm£¬»ªË¶ÍÆ¼ö12.5-15mmµÈµÈ£¬
-    ULONG tpOffset = (ULONG)(SpaceTouchpadOffsetSize * tp->TouchPad_DPMM_x);//´¥Ãş°åÖĞĞÄÏß½Ï¿Õ¸ñ¼üÖĞĞÄÏßÆ«ÓÒSpaceTouchpadOffsetµÄµãÕóÊıÖµ£¬
-    ULONG DisabledLineWidth = (ULONG)(40 * tp->TouchPad_DPMM_x);//ÆğµãÎó´¥ÊúÏßXÖµÎª¾àÀë¿Õ¸ñ¼üÖĞĞÄÏß×óÓÒ²à40mmÆ«ÒÆ¿í¶È´¦µÄ´¥Ãş°åX×ø±ê,
-    ULONG HalfWidthX = tp->logicalMax_X / 2;//´¥Ãş°åÒ»°ë¿í¶ÈÊıÖµ
+    //SpaceTouchpadOffsetSizeä¸ºè§¦æ‘¸æ¿ä¸­å¿ƒçº¿è¾ƒç©ºæ ¼é”®ä¸­å¿ƒçº¿åå³çš„è·ç¦»ï¼Œç„¶åä¸åŒçš„è§¦æ‘¸æ¿å°ºå¯¸ä»¥æ­¤ä¸­å¿ƒçº¿ä¸ºå¯¹ç§°è½´è®¾è®¡ä½ç½®å¸ƒå±€ï¼ŒDisabledX_RIGHTè§¦æ‘¸æ¿å³ä¾§åŒºåŸŸé˜²è¯¯è§¦èŒƒå›´æ›´å¤§ï¼Œ
+    const float SpaceTouchpadOffsetSize = 10;//è¯¥å€¼æ ¹æ®ç¬”è®°æœ¬ç©ºæ ¼é”®å’Œè§¦æ‘¸æ¿ä¸­ä¸‹æ—¬çš„è·ç¦»é€‚å½“è°ƒæ•´,è”æƒ³yogaå°æ–°thinkbookå¤§éƒ¨åˆ†ä¸º0mmå¯¹é½ï¼Œå¤§éƒ¨åˆ†ç¬”è®°æœ¬æ¨è10mmï¼Œåç¡•æ¨è12.5-15mmç­‰ç­‰ï¼Œ
+    ULONG tpOffset = (ULONG)(SpaceTouchpadOffsetSize * tp->TouchPad_DPMM_x);//è§¦æ‘¸æ¿ä¸­å¿ƒçº¿è¾ƒç©ºæ ¼é”®ä¸­å¿ƒçº¿åå³SpaceTouchpadOffsetçš„ç‚¹é˜µæ•°å€¼ï¼Œ
+    ULONG DisabledLineWidth = (ULONG)(40 * tp->TouchPad_DPMM_x);//èµ·ç‚¹è¯¯è§¦ç«–çº¿Xå€¼ä¸ºè·ç¦»ç©ºæ ¼é”®ä¸­å¿ƒçº¿å·¦å³ä¾§40mmåç§»å®½åº¦å¤„çš„è§¦æ‘¸æ¿Xåæ ‡,
+    ULONG HalfWidthX = tp->logicalMax_X / 2;//è§¦æ‘¸æ¿ä¸€åŠå®½åº¦æ•°å€¼
 
     LONG DisabledX_LEFT = HalfWidthX - DisabledLineWidth - tpOffset;
     ULONG DisabledX_RIGHT = HalfWidthX + DisabledLineWidth - tpOffset;
@@ -4042,7 +4054,7 @@ AnalyzeHidReportDescriptor(
         tp->StartX_RIGHT = DisabledX_RIGHT;
     }
 
-    //´¥Ãş°å±ß½Ç¹¦ÄÜ¼üÇøÓò×ø±ê
+    //è§¦æ‘¸æ¿è¾¹è§’åŠŸèƒ½é”®åŒºåŸŸåæ ‡
     if (HalfWidthX > DisabledLineWidth) {
         //
         tp->CornerX_LEFT = HalfWidthX - DisabledLineWidth;
@@ -4197,26 +4209,26 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
 
     PTP_PARSER* tp = &pDevContext->tp_settings;
 
-    //¼ÆËã±¨¸æÆµÂÊºÍÊ±¼ä¼ä¸ô
+    //è®¡ç®—æŠ¥å‘Šé¢‘ç‡å’Œæ—¶é—´é—´éš”
     KeQueryTickCount(&tp->current_Ticktime);
-    tp->ticktime_Interval.QuadPart = (tp->current_Ticktime.QuadPart - tp->last_Ticktime.QuadPart) * tp->tick_Count / 10000;//µ¥Î»msºÁÃë
-    tp->TouchPad_ReportInterval = (float)tp->ticktime_Interval.LowPart;//´¥Ãş°å±¨¸æ¼ä¸ôÊ±¼äms
+    tp->ticktime_Interval.QuadPart = (tp->current_Ticktime.QuadPart - tp->last_Ticktime.QuadPart) * tp->tick_Count / 10000;//å•ä½msæ¯«ç§’
+    tp->TouchPad_ReportInterval = (float)tp->ticktime_Interval.LowPart;//è§¦æ‘¸æ¿æŠ¥å‘Šé—´éš”æ—¶é—´ms
     tp->last_Ticktime = tp->current_Ticktime;
 
 
-    //±£´æµ±Ç°ÊÖÖ¸×ø±ê
+    //ä¿å­˜å½“å‰æ‰‹æŒ‡åæ ‡
     tp->currentFinger = *pPtpReport;
-    UCHAR currentFinger_Count = tp->currentFinger.ContactCount;//µ±Ç°´¥ÃşµãÊıÁ¿
-    UCHAR lastFinger_Count=tp->lastFinger.ContactCount; //ÉÏ´Î´¥ÃşµãÊıÁ¿
+    UCHAR currentFinger_Count = tp->currentFinger.ContactCount;//å½“å‰è§¦æ‘¸ç‚¹æ•°é‡
+    UCHAR lastFinger_Count=tp->lastFinger.ContactCount; //ä¸Šæ¬¡è§¦æ‘¸ç‚¹æ•°é‡
     KdPrint(("MouseLikeTouchPad_parse currentFinger_Count=,%x\n", currentFinger_Count));
     KdPrint(("MouseLikeTouchPad_parse lastFinger_Count=,%x\n", lastFinger_Count));
 
     UCHAR MAX_CONTACT_FINGER = PTP_MAX_CONTACT_POINTS;
     BOOLEAN allFingerDetached = TRUE;
-    for (UCHAR i = 0; i < MAX_CONTACT_FINGER; i++) {//ËùÓĞTipSwitchÎª0Ê±ÅĞ¶¨ÎªÊÖÖ¸È«²¿Àë¿ª£¬ÒòÎª×îºóÒ»¸öµãÀë¿ªÊ±ContactCountºÍConfidenceÊ¼ÖÕÎª1²»»áÖÃ0¡£
+    for (UCHAR i = 0; i < MAX_CONTACT_FINGER; i++) {//æ‰€æœ‰TipSwitchä¸º0æ—¶åˆ¤å®šä¸ºæ‰‹æŒ‡å…¨éƒ¨ç¦»å¼€ï¼Œå› ä¸ºæœ€åä¸€ä¸ªç‚¹ç¦»å¼€æ—¶ContactCountå’ŒConfidenceå§‹ç»ˆä¸º1ä¸ä¼šç½®0ã€‚
         if (tp->currentFinger.Contacts[i].TipSwitch) {
             allFingerDetached = FALSE;
-            currentFinger_Count = tp->currentFinger.ContactCount;//ÖØĞÂ¶¨Òåµ±Ç°´¥ÃşµãÊıÁ¿
+            currentFinger_Count = tp->currentFinger.ContactCount;//é‡æ–°å®šä¹‰å½“å‰è§¦æ‘¸ç‚¹æ•°é‡
             break;
         }
     }
@@ -4225,7 +4237,7 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
     }
 
 
-    //³õÊ¼»¯Êó±êÊÂ¼ş
+    //åˆå§‹åŒ–é¼ æ ‡äº‹ä»¶
     mouse_report_t mReport;
     mReport.report_id = FAKE_REPORTID_MOUSE;//FAKE_REPORTID_MOUSE//pDevContext->REPORTID_MOUSE_COLLECTION
 
@@ -4235,13 +4247,13 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
     mReport.h_wheel = 0;
     mReport.v_wheel = 0;
 
-    BOOLEAN bMouse_LButton_Status = 0; //¶¨ÒåÁÙÊ±Êó±ê×ó¼ü×´Ì¬£¬0ÎªÊÍ·Å£¬1Îª°´ÏÂ£¬Ã¿´Î¶¼ĞèÒªÖØÖÃÈ·±£ºóÃæÂß¼­
-    BOOLEAN bMouse_MButton_Status = 0; //¶¨ÒåÁÙÊ±Êó±êÖĞ¼ü×´Ì¬£¬0ÎªÊÍ·Å£¬1Îª°´ÏÂ£¬Ã¿´Î¶¼ĞèÒªÖØÖÃÈ·±£ºóÃæÂß¼­
-    BOOLEAN bMouse_RButton_Status = 0; //¶¨ÒåÁÙÊ±Êó±êÓÒ¼ü×´Ì¬£¬0ÎªÊÍ·Å£¬1Îª°´ÏÂ£¬Ã¿´Î¶¼ĞèÒªÖØÖÃÈ·±£ºóÃæÂß¼­
-    BOOLEAN bMouse_BButton_Status = 0; //¶¨ÒåÁÙÊ±Êó±êBackºóÍË¼ü×´Ì¬£¬0ÎªÊÍ·Å£¬1Îª°´ÏÂ£¬Ã¿´Î¶¼ĞèÒªÖØÖÃÈ·±£ºóÃæÂß¼­
-    BOOLEAN bMouse_FButton_Status = 0; //¶¨ÒåÁÙÊ±Êó±êForwardÇ°½ø¼ü×´Ì¬£¬0ÎªÊÍ·Å£¬1Îª°´ÏÂ£¬Ã¿´Î¶¼ĞèÒªÖØÖÃÈ·±£ºóÃæÂß¼­
+    BOOLEAN bMouse_LButton_Status = 0; //å®šä¹‰ä¸´æ—¶é¼ æ ‡å·¦é”®çŠ¶æ€ï¼Œ0ä¸ºé‡Šæ”¾ï¼Œ1ä¸ºæŒ‰ä¸‹ï¼Œæ¯æ¬¡éƒ½éœ€è¦é‡ç½®ç¡®ä¿åé¢é€»è¾‘
+    BOOLEAN bMouse_MButton_Status = 0; //å®šä¹‰ä¸´æ—¶é¼ æ ‡ä¸­é”®çŠ¶æ€ï¼Œ0ä¸ºé‡Šæ”¾ï¼Œ1ä¸ºæŒ‰ä¸‹ï¼Œæ¯æ¬¡éƒ½éœ€è¦é‡ç½®ç¡®ä¿åé¢é€»è¾‘
+    BOOLEAN bMouse_RButton_Status = 0; //å®šä¹‰ä¸´æ—¶é¼ æ ‡å³é”®çŠ¶æ€ï¼Œ0ä¸ºé‡Šæ”¾ï¼Œ1ä¸ºæŒ‰ä¸‹ï¼Œæ¯æ¬¡éƒ½éœ€è¦é‡ç½®ç¡®ä¿åé¢é€»è¾‘
+    BOOLEAN bMouse_BButton_Status = 0; //å®šä¹‰ä¸´æ—¶é¼ æ ‡Backåé€€é”®çŠ¶æ€ï¼Œ0ä¸ºé‡Šæ”¾ï¼Œ1ä¸ºæŒ‰ä¸‹ï¼Œæ¯æ¬¡éƒ½éœ€è¦é‡ç½®ç¡®ä¿åé¢é€»è¾‘
+    BOOLEAN bMouse_FButton_Status = 0; //å®šä¹‰ä¸´æ—¶é¼ æ ‡Forwardå‰è¿›é”®çŠ¶æ€ï¼Œ0ä¸ºé‡Šæ”¾ï¼Œ1ä¸ºæŒ‰ä¸‹ï¼Œæ¯æ¬¡éƒ½éœ€è¦é‡ç½®ç¡®ä¿åé¢é€»è¾‘
 
-    //³õÊ¼»¯µ±Ç°´¥ÃşµãË÷ÒıºÅ£¬¸ú×ÙºóÎ´ÔÙ¸³ÖµµÄ±íÊ¾²»´æÔÚÁË
+    //åˆå§‹åŒ–å½“å‰è§¦æ‘¸ç‚¹ç´¢å¼•å·ï¼Œè·Ÿè¸ªåæœªå†èµ‹å€¼çš„è¡¨ç¤ºä¸å­˜åœ¨äº†
     tp->nMouse_Pointer_CurrentIndex = -1;
     tp->nMouse_LButton_CurrentIndex = -1;
     tp->nMouse_RButton_CurrentIndex = -1;
@@ -4249,67 +4261,67 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
     tp->nMouse_Wheel_CurrentIndex = -1;
 
 
-    //ËùÓĞÊÖÖ¸´¥ÃşµãµÄË÷ÒıºÅ¸ú×Ù
+    //æ‰€æœ‰æ‰‹æŒ‡è§¦æ‘¸ç‚¹çš„ç´¢å¼•å·è·Ÿè¸ª
     for (char i = 0; i < currentFinger_Count; i++) {
-        if (!tp->currentFinger.Contacts[i].Confidence || !tp->currentFinger.Contacts[i].TipSwitch) {//±ØĞëÅĞ¶ÏConfidenceºÍTipSwitch²ÅÊÇÓĞĞ§´¥ÃşµãÊı¾İ     
+        if (!tp->currentFinger.Contacts[i].Confidence || !tp->currentFinger.Contacts[i].TipSwitch) {//å¿…é¡»åˆ¤æ–­Confidenceå’ŒTipSwitchæ‰æ˜¯æœ‰æ•ˆè§¦æ‘¸ç‚¹æ•°æ®     
             continue;
         }
 
         if (tp->nMouse_Pointer_LastIndex != -1) {
             if (tp->lastFinger.Contacts[tp->nMouse_Pointer_LastIndex].ContactID == tp->currentFinger.Contacts[i].ContactID) {
-                tp->nMouse_Pointer_CurrentIndex = i;//ÕÒµ½Ö¸Õë
-                continue;//²éÕÒÆäËû¹¦ÄÜ
+                tp->nMouse_Pointer_CurrentIndex = i;//æ‰¾åˆ°æŒ‡é’ˆ
+                continue;//æŸ¥æ‰¾å…¶ä»–åŠŸèƒ½
             }
         }
 
         if (tp->nMouse_Wheel_LastIndex != -1) {
             if (tp->lastFinger.Contacts[tp->nMouse_Wheel_LastIndex].ContactID == tp->currentFinger.Contacts[i].ContactID) {
-                tp->nMouse_Wheel_CurrentIndex = i;//ÕÒµ½¹öÂÖ¸¨Öú¼ü
-                continue;//²éÕÒÆäËû¹¦ÄÜ
+                tp->nMouse_Wheel_CurrentIndex = i;//æ‰¾åˆ°æ»šè½®è¾…åŠ©é”®
+                continue;//æŸ¥æ‰¾å…¶ä»–åŠŸèƒ½
             }
         }
 
         if (tp->nMouse_LButton_LastIndex != -1) {
             if (tp->lastFinger.Contacts[tp->nMouse_LButton_LastIndex].ContactID == tp->currentFinger.Contacts[i].ContactID) {
-                bMouse_LButton_Status = 1; //ÕÒµ½×ó¼ü£¬
-                tp->nMouse_LButton_CurrentIndex = i;//¸³Öµ×ó¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                continue;//²éÕÒÆäËû¹¦ÄÜ
+                bMouse_LButton_Status = 1; //æ‰¾åˆ°å·¦é”®ï¼Œ
+                tp->nMouse_LButton_CurrentIndex = i;//èµ‹å€¼å·¦é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                continue;//æŸ¥æ‰¾å…¶ä»–åŠŸèƒ½
             }
         }
 
         if (tp->nMouse_RButton_LastIndex != -1) {
             if (tp->lastFinger.Contacts[tp->nMouse_RButton_LastIndex].ContactID == tp->currentFinger.Contacts[i].ContactID) {
-                bMouse_RButton_Status = 1; //ÕÒµ½ÓÒ¼ü£¬
-                tp->nMouse_RButton_CurrentIndex = i;//¸³ÖµÓÒ¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                continue;//²éÕÒÆäËû¹¦ÄÜ
+                bMouse_RButton_Status = 1; //æ‰¾åˆ°å³é”®ï¼Œ
+                tp->nMouse_RButton_CurrentIndex = i;//èµ‹å€¼å³é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                continue;//æŸ¥æ‰¾å…¶ä»–åŠŸèƒ½
             }
         }
 
         if (tp->nMouse_MButton_LastIndex != -1) {
             if (tp->lastFinger.Contacts[tp->nMouse_MButton_LastIndex].ContactID == tp->currentFinger.Contacts[i].ContactID) {
-                bMouse_MButton_Status = 1; //ÕÒµ½ÖĞ¼ü£¬
-                tp->nMouse_MButton_CurrentIndex = i;//¸³ÖµÖĞ¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                continue;//²éÕÒÆäËû¹¦ÄÜ
+                bMouse_MButton_Status = 1; //æ‰¾åˆ°ä¸­é”®ï¼Œ
+                tp->nMouse_MButton_CurrentIndex = i;//èµ‹å€¼ä¸­é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                continue;//æŸ¥æ‰¾å…¶ä»–åŠŸèƒ½
             }
         }     
     }
 
     KdPrint(("MouseLikeTouchPad_parse traced currentFinger_Count=,%x\n", currentFinger_Count));
 
-    if (tp->currentFinger.IsButtonClicked) {//´¥Ãş°åÏÂÑØÎïÀí°´¼ü¹¦ÄÜ,ÇĞ»»´¥¿Ø°åÁéÃô¶È/¹öÂÖÄ£Ê½¿ª¹ØµÈ²ÎÊıÉèÖÃ,ĞèÒª½øĞĞÀë¿ªÅĞ¶¨£¬ÒòÎª°´¼ü±¨¸æ»áÒ»Ö±·¢ËÍÖ±µ½ÊÍ·Å
-        tp->bPhysicalButtonUp = FALSE;//ÎïÀí¼üÊÇ·ñÊÍ·Å±êÖ¾
+    if (tp->currentFinger.IsButtonClicked) {//è§¦æ‘¸æ¿ä¸‹æ²¿ç‰©ç†æŒ‰é”®åŠŸèƒ½,åˆ‡æ¢è§¦æ§æ¿çµæ•åº¦/æ»šè½®æ¨¡å¼å¼€å…³ç­‰å‚æ•°è®¾ç½®,éœ€è¦è¿›è¡Œç¦»å¼€åˆ¤å®šï¼Œå› ä¸ºæŒ‰é”®æŠ¥å‘Šä¼šä¸€ç›´å‘é€ç›´åˆ°é‡Šæ”¾
+        tp->bPhysicalButtonUp = FALSE;//ç‰©ç†é”®æ˜¯å¦é‡Šæ”¾æ ‡å¿—
         KdPrint(("MouseLikeTouchPad_parse bPhysicalButtonUp FALSE,%x\n", FALSE));
-        //×¼±¸ÉèÖÃ´¥Ãş°åÏÂÑØÎïÀí°´¼üÏà¹Ø²ÎÊı
-        if (currentFinger_Count == 1) {//µ¥Ö¸ÖØ°´´¥¿Ø°å×óÏÂ½ÇÎïÀí¼üÎªÊó±êµÄºóÍË¹¦ÄÜ¼ü£¬µ¥Ö¸ÖØ°´´¥¿Ø°åÓÒÏÂ½ÇÎïÀí¼üÎªÊó±êµÄÇ°½ø¹¦ÄÜ¼ü£¬µ¥Ö¸ÖØ°´´¥¿Ø°åÏÂÑØÖĞ¼äÎïÀí¼üÎªµ÷½ÚÊó±êÁéÃô¶È£¨Âı/ÖĞµÈ/¿ì3¶ÎÁéÃô¶È£©£¬
+        //å‡†å¤‡è®¾ç½®è§¦æ‘¸æ¿ä¸‹æ²¿ç‰©ç†æŒ‰é”®ç›¸å…³å‚æ•°
+        if (currentFinger_Count == 1) {//å•æŒ‡é‡æŒ‰è§¦æ§æ¿å·¦ä¸‹è§’ç‰©ç†é”®ä¸ºé¼ æ ‡çš„åé€€åŠŸèƒ½é”®ï¼Œå•æŒ‡é‡æŒ‰è§¦æ§æ¿å³ä¸‹è§’ç‰©ç†é”®ä¸ºé¼ æ ‡çš„å‰è¿›åŠŸèƒ½é”®ï¼Œå•æŒ‡é‡æŒ‰è§¦æ§æ¿ä¸‹æ²¿ä¸­é—´ç‰©ç†é”®ä¸ºè°ƒèŠ‚é¼ æ ‡çµæ•åº¦ï¼ˆæ…¢/ä¸­ç­‰/å¿«3æ®µçµæ•åº¦ï¼‰ï¼Œ
             if (tp->currentFinger.Contacts[0].ContactID == 0 && tp->currentFinger.Contacts[0].Confidence && tp->currentFinger.Contacts[0].TipSwitch\
-                && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y *3 / 4) && tp->currentFinger.Contacts[0].X < tp->CornerX_LEFT) {//Ê×¸ö´¥Ãşµã×ø±êÔÚ×óÏÂ½Ç
-                bMouse_BButton_Status = 1;//Êó±ê²àÃæµÄºóÍË¼ü°´ÏÂ
+                && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y *3 / 4) && tp->currentFinger.Contacts[0].X < tp->CornerX_LEFT) {//é¦–ä¸ªè§¦æ‘¸ç‚¹åæ ‡åœ¨å·¦ä¸‹è§’
+                bMouse_BButton_Status = 1;//é¼ æ ‡ä¾§é¢çš„åé€€é”®æŒ‰ä¸‹
             }
             else if (tp->currentFinger.Contacts[0].ContactID == 0 && tp->currentFinger.Contacts[0].Confidence && tp->currentFinger.Contacts[0].TipSwitch\
-                && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y * 3 / 4) && tp->currentFinger.Contacts[0].X > tp->CornerX_RIGHT) {//Ê×¸ö´¥Ãşµã×ø±êÔÚÓÒÏÂ½Ç
-                bMouse_FButton_Status = 1;//Êó±ê²àÃæµÄÇ°½ø¼ü°´ÏÂ
+                && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y * 3 / 4) && tp->currentFinger.Contacts[0].X > tp->CornerX_RIGHT) {//é¦–ä¸ªè§¦æ‘¸ç‚¹åæ ‡åœ¨å³ä¸‹è§’
+                bMouse_FButton_Status = 1;//é¼ æ ‡ä¾§é¢çš„å‰è¿›é”®æŒ‰ä¸‹
             }
-            else {//ÇĞ»»Êó±êDPIÁéÃô¶È£¬·ÅÔÚÎïÀí¼üÊÍ·ÅÊ±Ö´ĞĞÅĞ¶Ï
+            else {//åˆ‡æ¢é¼ æ ‡DPIçµæ•åº¦ï¼Œæ”¾åœ¨ç‰©ç†é”®é‡Šæ”¾æ—¶æ‰§è¡Œåˆ¤æ–­
 
             }
 
@@ -4319,50 +4331,50 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
         if (!tp->bPhysicalButtonUp) {
             tp->bPhysicalButtonUp = TRUE;
             KdPrint(("MouseLikeTouchPad_parse bPhysicalButtonUp TRUE,%x\n", TRUE));
-            if (currentFinger_Count == 1) {//µ¥Ö¸ÖØ°´´¥¿Ø°åÏÂÑØÖĞ¼äÎïÀí¼üÎªµ÷½ÚÊó±êÁéÃô¶È£¨Âı/ÖĞµÈ/¿ì3¶ÎÁéÃô¶È£©£¬Êó±êµÄºóÍË/Ç°½ø¹¦ÄÜ¼ü²»ĞèÒªÅĞ¶Ï»á×Ô¶¯ÊÍ·Å)£¬
+            if (currentFinger_Count == 1) {//å•æŒ‡é‡æŒ‰è§¦æ§æ¿ä¸‹æ²¿ä¸­é—´ç‰©ç†é”®ä¸ºè°ƒèŠ‚é¼ æ ‡çµæ•åº¦ï¼ˆæ…¢/ä¸­ç­‰/å¿«3æ®µçµæ•åº¦ï¼‰ï¼Œé¼ æ ‡çš„åé€€/å‰è¿›åŠŸèƒ½é”®ä¸éœ€è¦åˆ¤æ–­ä¼šè‡ªåŠ¨é‡Šæ”¾)ï¼Œ
 
-                //tp->currentFinger.Contacts[0].ContactID²»Ò»¶¨Îª0ËùÒÔ²»ÄÜ×÷ÎªÅĞ¶ÏÌõ¼ş
+                //tp->currentFinger.Contacts[0].ContactIDä¸ä¸€å®šä¸º0æ‰€ä»¥ä¸èƒ½ä½œä¸ºåˆ¤æ–­æ¡ä»¶
                 if (tp->currentFinger.Contacts[0].Confidence && tp->currentFinger.Contacts[0].TipSwitch\
-                    && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y * 3 / 4) && tp->currentFinger.Contacts[0].X >  tp->CornerX_LEFT && tp->currentFinger.Contacts[0].X < tp->CornerX_RIGHT) {//Ê×¸ö´¥Ãşµã×ø±êÔÚ´¥Ãş°åÏÂÑØÖĞ¼ä
-                    //ÇĞ»»Êó±êDPIÁéÃô¶È
-                    SetNextSensitivity(pDevContext);//Ñ­»·ÉèÖÃÁéÃô¶È
+                    && tp->currentFinger.Contacts[0].Y > (tp->logicalMax_Y * 3 / 4) && tp->currentFinger.Contacts[0].X >  tp->CornerX_LEFT && tp->currentFinger.Contacts[0].X < tp->CornerX_RIGHT) {//é¦–ä¸ªè§¦æ‘¸ç‚¹åæ ‡åœ¨è§¦æ‘¸æ¿ä¸‹æ²¿ä¸­é—´
+                    //åˆ‡æ¢é¼ æ ‡DPIçµæ•åº¦
+                    SetNextSensitivity(pDevContext);//å¾ªç¯è®¾ç½®çµæ•åº¦
                 }          
             }
-            else if (currentFinger_Count == 2) {//Ë«Ö¸ÖØ°´´¥¿Ø°åÏÂÑØÎïÀí¼üÊ±ÉèÖÃÎª¿ªÆô/¹Ø±ÕË«Ö¸¹öÂÖ¹¦ÄÜ
-                //²»²ÉÓÃ3Ö¸¹öÂÖ·½Ê½ÒòÎªÅĞ¶ÏÇø·ÖË«Ö¸ÏÈ½Ó´¥µÄ²Ù×÷±ØĞë¼Ó´óÊ±¼äãĞÖµÊ¹µÃÑÓ³ÙÌ«¸ß²»ºÏÊÊ²¢ÇÒ²»ÈçË«Ö¸²Ù×÷ÊæÊÊ,ÍæÓÎÏ·½ÏÉÙÊ¹ÓÃµ½¹öÂÖ¹¦ÄÜ¿ÉÑ¡Ôñ¹Ø±ÕÇĞ»»¿ÉÒÔ¼«´ó½µµÍÍæÓÎÏ·Ê±µÄÎó²Ù×÷ÂÊ£¬ËùÒÔ²ÉÈ¡¿ªÆô¹Ø±Õ¹öÂÖ·½°¸¼æ¹ËÈÕ³£²Ù×÷ºÍÓÎÏ·
+            else if (currentFinger_Count == 2) {//åŒæŒ‡é‡æŒ‰è§¦æ§æ¿ä¸‹æ²¿ç‰©ç†é”®æ—¶è®¾ç½®ä¸ºå¼€å¯/å…³é—­åŒæŒ‡æ»šè½®åŠŸèƒ½
+                //ä¸é‡‡ç”¨3æŒ‡æ»šè½®æ–¹å¼å› ä¸ºåˆ¤æ–­åŒºåˆ†åŒæŒ‡å…ˆæ¥è§¦çš„æ“ä½œå¿…é¡»åŠ å¤§æ—¶é—´é˜ˆå€¼ä½¿å¾—å»¶è¿Ÿå¤ªé«˜ä¸åˆé€‚å¹¶ä¸”ä¸å¦‚åŒæŒ‡æ“ä½œèˆ’é€‚,ç©æ¸¸æˆè¾ƒå°‘ä½¿ç”¨åˆ°æ»šè½®åŠŸèƒ½å¯é€‰æ‹©å…³é—­åˆ‡æ¢å¯ä»¥æå¤§é™ä½ç©æ¸¸æˆæ—¶çš„è¯¯æ“ä½œç‡ï¼Œæ‰€ä»¥é‡‡å–å¼€å¯å…³é—­æ»šè½®æ–¹æ¡ˆå…¼é¡¾æ—¥å¸¸æ“ä½œå’Œæ¸¸æˆ
 
                 pDevContext->bWheelDisabled = !pDevContext->bWheelDisabled;
                 KdPrint(("MouseLikeTouchPad_parse bWheelDisabled=,%x\n", pDevContext->bWheelDisabled));
-                if (!pDevContext->bWheelDisabled) {//¿ªÆô¹öÂÖ¹¦ÄÜÊ±Í¬Ê±Ò²»Ö¸´¹öÂÖÊµÏÖ·½Ê½Îª´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆ
-                    pDevContext->bWheelScrollMode = FALSE;//Ä¬ÈÏ³õÊ¼ÖµÎª´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆ
+                if (!pDevContext->bWheelDisabled) {//å¼€å¯æ»šè½®åŠŸèƒ½æ—¶åŒæ—¶ä¹Ÿæ¢å¤æ»šè½®å®ç°æ–¹å¼ä¸ºè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿
+                    pDevContext->bWheelScrollMode = FALSE;//é»˜è®¤åˆå§‹å€¼ä¸ºè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿
                     KdPrint(("MouseLikeTouchPad_parse bWheelScrollMode=,%x\n", pDevContext->bWheelScrollMode));
                 }
 
                 KdPrint(("MouseLikeTouchPad_parse bPhysicalButtonUp currentFinger_Count=,%x\n", currentFinger_Count));
             }
-            else if (currentFinger_Count == 3) {//ÈıÖ¸ÖØ°´´¥¿Ø°åÏÂÑØÎïÀí¼üÊ±ÉèÖÃÎªÇĞ»»¹öÂÖÄ£Ê½bWheelScrollMode£¬¶¨ÒåÊó±ê¹öÂÖÊµÏÖ·½Ê½£¬TRUEÎªÄ£·ÂÊó±ê¹öÂÖ£¬FALSEÎª´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆ
-                //ÒòÎªÈÕ³£²Ù×÷¹öÂÖ¸ü³£ÓÃ£¬ËùÒÔ¹Ø±Õ¹öÂÖ¹¦ÄÜµÄ×´Ì¬²»±£´æµ½×¢²á±í£¬µçÄÔÖØÆô»òĞİÃß»½ĞÑºó»Ö¸´¹öÂÖ¹¦ÄÜ
-                //ÒòÎª´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆµÄ¹öÂÖÄ£Ê½¸ü³£ÓÃ£¬ËùÒÔÄ£·ÂÊó±êµÄ¹öÂÖÄ£Ê½×´Ì¬²»±£´æµ½×¢²á±í£¬µçÄÔÖØÆô»òĞİÃß»½ĞÑºó»Ö¸´µ½Ë«Ö¸»¬¶¯ÊÖÊÆµÄ¹öÂÖÄ£Ê½
+            else if (currentFinger_Count == 3) {//ä¸‰æŒ‡é‡æŒ‰è§¦æ§æ¿ä¸‹æ²¿ç‰©ç†é”®æ—¶è®¾ç½®ä¸ºåˆ‡æ¢æ»šè½®æ¨¡å¼bWheelScrollModeï¼Œå®šä¹‰é¼ æ ‡æ»šè½®å®ç°æ–¹å¼ï¼ŒTRUEä¸ºæ¨¡ä»¿é¼ æ ‡æ»šè½®ï¼ŒFALSEä¸ºè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿
+                //å› ä¸ºæ—¥å¸¸æ“ä½œæ»šè½®æ›´å¸¸ç”¨ï¼Œæ‰€ä»¥å…³é—­æ»šè½®åŠŸèƒ½çš„çŠ¶æ€ä¸ä¿å­˜åˆ°æ³¨å†Œè¡¨ï¼Œç”µè„‘é‡å¯æˆ–ä¼‘çœ å”¤é†’åæ¢å¤æ»šè½®åŠŸèƒ½
+                //å› ä¸ºè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿çš„æ»šè½®æ¨¡å¼æ›´å¸¸ç”¨ï¼Œæ‰€ä»¥æ¨¡ä»¿é¼ æ ‡çš„æ»šè½®æ¨¡å¼çŠ¶æ€ä¸ä¿å­˜åˆ°æ³¨å†Œè¡¨ï¼Œç”µè„‘é‡å¯æˆ–ä¼‘çœ å”¤é†’åæ¢å¤åˆ°åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿çš„æ»šè½®æ¨¡å¼
                 pDevContext->bWheelScrollMode = !pDevContext->bWheelScrollMode;
                 KdPrint(("MouseLikeTouchPad_parse bWheelScrollMode=,%x\n", pDevContext->bWheelScrollMode));
 
-                //ÇĞ»»¹öÂÖÊµÏÖ·½Ê½µÄÍ¬Ê±Ò²¿ªÆô¹öÂÖ¹¦ÄÜ·½±ãÓÃ»§
+                //åˆ‡æ¢æ»šè½®å®ç°æ–¹å¼çš„åŒæ—¶ä¹Ÿå¼€å¯æ»šè½®åŠŸèƒ½æ–¹ä¾¿ç”¨æˆ·
                 pDevContext->bWheelDisabled = FALSE;
                 KdPrint(("MouseLikeTouchPad_parse bWheelDisabled=,%x\n", pDevContext->bWheelDisabled));
 
 
                 KdPrint(("MouseLikeTouchPad_parse bPhysicalButtonUp currentFinger_Count=,%x\n", currentFinger_Count));
             }
-            else if (currentFinger_Count == 4) {//ËÄÖ¸°´Ñ¹´¥¿Ø°åÎïÀí°´¼üÊ±ÎªÇĞ»»3¶ÎÊÖÖ¸¿í¶È´óĞ¡ÉèÖÃ²¢ÉúĞ§£¬·½±ãÓÃ»§ÊÊÅäÊó±êÖĞ¼ü¹¦ÄÜ¡£
-                SetNextThumbScale(pDevContext); //¶¯Ì¬µ÷ÕûÊÖÖ¸Í·´óĞ¡³£Á¿
+            else if (currentFinger_Count == 4) {//å››æŒ‡æŒ‰å‹è§¦æ§æ¿ç‰©ç†æŒ‰é”®æ—¶ä¸ºåˆ‡æ¢3æ®µæ‰‹æŒ‡å®½åº¦å¤§å°è®¾ç½®å¹¶ç”Ÿæ•ˆï¼Œæ–¹ä¾¿ç”¨æˆ·é€‚é…é¼ æ ‡ä¸­é”®åŠŸèƒ½ã€‚
+                SetNextThumbScale(pDevContext); //åŠ¨æ€è°ƒæ•´æ‰‹æŒ‡å¤´å¤§å°å¸¸é‡
                 
                 KdPrint(("MouseLikeTouchPad_parse SetNextFingerSize thumb_Scale=,%x\n", tp->thumb_Scale));
 
                 KdPrint(("MouseLikeTouchPad_parse bPhysicalButtonUp currentFinger_Count=,%x\n", currentFinger_Count));
             }
-            else if (currentFinger_Count == 5) {//ÎåÖ¸°´Ñ¹´¥¿Ø°åÎïÀí°´¼üÊ±ÇĞ»»·ÂÊó±êÊ½´¥Ãş°åÓëwindowsÔ­°æµÄPTP¾«È·Ê½´¥Ãş°å²Ù×÷·½Ê½
-                //ÒòÎªÔ­°æ´¥¿Ø°å²Ù×÷·½Ê½Ö»ÊÇÁÙÊ±Ê¹ÓÃËùÒÔ²»±£´æµ½×¢²á±í£¬µçÄÔÖØÆô»òĞİÃß»½ĞÑºó»Ö¸´µ½·ÂÊó±êÊ½´¥Ãş°åÄ£Ê½
-                // Ô­°æµÄPTP¾«È·Ê½´¥Ãş°å²Ù×÷·½Ê½Ê±·¢ËÍ±¨¸æÔÚ±¾º¯ÊıÍâ²¿Ö´ĞĞ²»ĞèÒªÀË·Ñ×ÊÔ´½âÎö£¬ÇĞ»»»Ø·ÂÊó±êÊ½´¥Ãş°åÄ£Ê½Ò²ÔÚ±¾º¯ÊıÍâ²¿ÅĞ¶Ï
+            else if (currentFinger_Count == 5) {//äº”æŒ‡æŒ‰å‹è§¦æ§æ¿ç‰©ç†æŒ‰é”®æ—¶åˆ‡æ¢ä»¿é¼ æ ‡å¼è§¦æ‘¸æ¿ä¸windowsåŸç‰ˆçš„PTPç²¾ç¡®å¼è§¦æ‘¸æ¿æ“ä½œæ–¹å¼
+                //å› ä¸ºåŸç‰ˆè§¦æ§æ¿æ“ä½œæ–¹å¼åªæ˜¯ä¸´æ—¶ä½¿ç”¨æ‰€ä»¥ä¸ä¿å­˜åˆ°æ³¨å†Œè¡¨ï¼Œç”µè„‘é‡å¯æˆ–ä¼‘çœ å”¤é†’åæ¢å¤åˆ°ä»¿é¼ æ ‡å¼è§¦æ‘¸æ¿æ¨¡å¼
+                // åŸç‰ˆçš„PTPç²¾ç¡®å¼è§¦æ‘¸æ¿æ“ä½œæ–¹å¼æ—¶å‘é€æŠ¥å‘Šåœ¨æœ¬å‡½æ•°å¤–éƒ¨æ‰§è¡Œä¸éœ€è¦æµªè´¹èµ„æºè§£æï¼Œåˆ‡æ¢å›ä»¿é¼ æ ‡å¼è§¦æ‘¸æ¿æ¨¡å¼ä¹Ÿåœ¨æœ¬å‡½æ•°å¤–éƒ¨åˆ¤æ–­
                 pDevContext->bMouseLikeTouchPad_Mode = FALSE;
                 KdPrint(("MouseLikeTouchPad_parse bMouseLikeTouchPad_Mode=,%x\n", pDevContext->bMouseLikeTouchPad_Mode));
   
@@ -4372,25 +4384,25 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
         }
     }
 
-    //¿ªÊ¼Êó±êÊÂ¼şÂß¼­ÅĞ¶¨
-    //×¢Òâ¶àÊÖÖ¸·ÇÍ¬Ê±¿ìËÙ½Ó´¥´¥Ãş°åÊ±´¥Ãş°å±¨¸æ¿ÉÄÜ´æÔÚÒ»Ö¡ÖĞÍ¬Ê±ĞÂÔö¶à¸ö´¥ÃşµãµÄÇé¿öËùÒÔ²»ÄÜÓÃµ±Ç°Ö»ÓĞÒ»¸ö´¥Ãşµã×÷Îª¶¨ÒåÖ¸ÕëµÄÅĞ¶ÏÌõ¼ş
-    if (tp->nMouse_Pointer_LastIndex == -1 && currentFinger_Count > 0) {//Êó±êÖ¸Õë¡¢×ó¼ü¡¢ÓÒ¼ü¡¢ÖĞ¼ü¶¼Î´¶¨Òå,
-        //Ö¸Õë´¥ÃşµãÑ¹Á¦¡¢½Ó´¥Ãæ³¤¿í±ÈãĞÖµÌØÕ÷Çø·ÖÅĞ¶¨ÊÖÕÆ´ò×ÖÎó´¥ºÍÕı³£²Ù×÷,Ñ¹Á¦Ô½Ğ¡½Ó´¥Ãæ³¤¿í±ÈãĞÖµÔ½´ó¡¢³¤¶ÈãĞÖµÔ½Ğ¡
+    //å¼€å§‹é¼ æ ‡äº‹ä»¶é€»è¾‘åˆ¤å®š
+    //æ³¨æ„å¤šæ‰‹æŒ‡éåŒæ—¶å¿«é€Ÿæ¥è§¦è§¦æ‘¸æ¿æ—¶è§¦æ‘¸æ¿æŠ¥å‘Šå¯èƒ½å­˜åœ¨ä¸€å¸§ä¸­åŒæ—¶æ–°å¢å¤šä¸ªè§¦æ‘¸ç‚¹çš„æƒ…å†µæ‰€ä»¥ä¸èƒ½ç”¨å½“å‰åªæœ‰ä¸€ä¸ªè§¦æ‘¸ç‚¹ä½œä¸ºå®šä¹‰æŒ‡é’ˆçš„åˆ¤æ–­æ¡ä»¶
+    if (tp->nMouse_Pointer_LastIndex == -1 && currentFinger_Count > 0) {//é¼ æ ‡æŒ‡é’ˆã€å·¦é”®ã€å³é”®ã€ä¸­é”®éƒ½æœªå®šä¹‰,
+        //æŒ‡é’ˆè§¦æ‘¸ç‚¹å‹åŠ›ã€æ¥è§¦é¢é•¿å®½æ¯”é˜ˆå€¼ç‰¹å¾åŒºåˆ†åˆ¤å®šæ‰‹æŒæ‰“å­—è¯¯è§¦å’Œæ­£å¸¸æ“ä½œ,å‹åŠ›è¶Šå°æ¥è§¦é¢é•¿å®½æ¯”é˜ˆå€¼è¶Šå¤§ã€é•¿åº¦é˜ˆå€¼è¶Šå°
         for (UCHAR i = 0; i < currentFinger_Count; i++) {
-            //tp->currentFinger.Contacts[0].ContactID²»Ò»¶¨Îª0ËùÒÔ²»ÄÜ×÷ÎªÅĞ¶ÏÌõ¼ş
+            //tp->currentFinger.Contacts[0].ContactIDä¸ä¸€å®šä¸º0æ‰€ä»¥ä¸èƒ½ä½œä¸ºåˆ¤æ–­æ¡ä»¶
             if (tp->currentFinger.Contacts[i].Confidence && tp->currentFinger.Contacts[i].TipSwitch\
-                && tp->currentFinger.Contacts[i].Y > tp->StartY_TOP && tp->currentFinger.Contacts[i].X > tp->StartX_LEFT && tp->currentFinger.Contacts[i].X < tp->StartX_RIGHT) {//Æğµã×ø±êÔÚÎó´¥ºáÊúÏßÒÔÄÚ
-                tp->nMouse_Pointer_CurrentIndex = i;  //Ê×¸ö´¥Ãşµã×÷ÎªÖ¸Õë
-                tp->MousePointer_DefineTime = tp->current_Ticktime;//¶¨Òåµ±Ç°Ö¸ÕëÆğÊ¼Ê±¼ä
+                && tp->currentFinger.Contacts[i].Y > tp->StartY_TOP && tp->currentFinger.Contacts[i].X > tp->StartX_LEFT && tp->currentFinger.Contacts[i].X < tp->StartX_RIGHT) {//èµ·ç‚¹åæ ‡åœ¨è¯¯è§¦æ¨ªç«–çº¿ä»¥å†…
+                tp->nMouse_Pointer_CurrentIndex = i;  //é¦–ä¸ªè§¦æ‘¸ç‚¹ä½œä¸ºæŒ‡é’ˆ
+                tp->MousePointer_DefineTime = tp->current_Ticktime;//å®šä¹‰å½“å‰æŒ‡é’ˆèµ·å§‹æ—¶é—´
                 break;
             }
         }
     }
-    else if (tp->nMouse_Pointer_CurrentIndex == -1 && tp->nMouse_Pointer_LastIndex != -1) {//Ö¸ÕëÏûÊ§
-        tp->bMouse_Wheel_Mode = FALSE;//½áÊø¹öÂÖÄ£Ê½
-        tp->bMouse_Wheel_Mode_JudgeEnable = TRUE;//¿ªÆô¹öÂÖÅĞ±ğ
+    else if (tp->nMouse_Pointer_CurrentIndex == -1 && tp->nMouse_Pointer_LastIndex != -1) {//æŒ‡é’ˆæ¶ˆå¤±
+        tp->bMouse_Wheel_Mode = FALSE;//ç»“æŸæ»šè½®æ¨¡å¼
+        tp->bMouse_Wheel_Mode_JudgeEnable = TRUE;//å¼€å¯æ»šè½®åˆ¤åˆ«
 
-        tp->bGestureCompleted = TRUE;//ÊÖÊÆÄ£Ê½½áÊø,µ«tp->bPtpReportCollection²»ÒªÖØÖÃ´ıÆäËû´úÂëÀ´´¦Àí
+        tp->bGestureCompleted = TRUE;//æ‰‹åŠ¿æ¨¡å¼ç»“æŸ,ä½†tp->bPtpReportCollectionä¸è¦é‡ç½®å¾…å…¶ä»–ä»£ç æ¥å¤„ç†
 
         tp->nMouse_Pointer_CurrentIndex = -1;
         tp->nMouse_LButton_CurrentIndex = -1;
@@ -4398,39 +4410,39 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
         tp->nMouse_MButton_CurrentIndex = -1;
         tp->nMouse_Wheel_CurrentIndex = -1;
     }
-    else if (tp->nMouse_Pointer_CurrentIndex != -1 && !tp->bMouse_Wheel_Mode) {  //Ö¸ÕëÒÑ¶¨ÒåµÄ·Ç¹öÂÖÊÂ¼ş´¦Àí
-        //²éÕÒÖ¸Õë×ó²à»òÕßÓÒ²àÊÇ·ñÓĞÊÖÖ¸×÷Îª¹öÂÖÄ£Ê½»òÕß°´¼üÄ£Ê½£¬µ±Ö¸Õë×ó²à/ÓÒ²àµÄÊÖÖ¸°´ÏÂÊ±¼äÓëÖ¸ÕëÊÖÖ¸¶¨ÒåÊ±¼ä¼ä¸ôĞ¡ÓÚÉè¶¨ãĞÖµÊ±ÅĞ¶¨ÎªÊó±ê¹öÂÖ·ñÔòÎªÊó±ê°´¼ü£¬ÕâÒ»¹æÔòÄÜÓĞĞ§Çø±ğ°´¼üÓë¹öÂÖ²Ù×÷,µ«Êó±ê°´¼üºÍ¹öÂÖ²»ÄÜÒ»ÆğÊ¹ÓÃ
-        //°´¼ü¶¨Òåºó»á¸ú×Ù×ø±êËùÒÔ×ó¼üºÍÖĞ¼ü²»ÄÜ»¬¶¯Ê³Ö¸»¥ÏàÇĞ»»ĞèÒªÌ§ÆğÊ³Ö¸ºó½øĞĞ¸Ä±ä£¬×ó¼ü/ÖĞ¼ü/ÓÒ¼ü°´ÏÂµÄÇé¿öÏÂ²»ÄÜ×ª±äÎª¹öÂÖÄ£Ê½£¬
+    else if (tp->nMouse_Pointer_CurrentIndex != -1 && !tp->bMouse_Wheel_Mode) {  //æŒ‡é’ˆå·²å®šä¹‰çš„éæ»šè½®äº‹ä»¶å¤„ç†
+        //æŸ¥æ‰¾æŒ‡é’ˆå·¦ä¾§æˆ–è€…å³ä¾§æ˜¯å¦æœ‰æ‰‹æŒ‡ä½œä¸ºæ»šè½®æ¨¡å¼æˆ–è€…æŒ‰é”®æ¨¡å¼ï¼Œå½“æŒ‡é’ˆå·¦ä¾§/å³ä¾§çš„æ‰‹æŒ‡æŒ‰ä¸‹æ—¶é—´ä¸æŒ‡é’ˆæ‰‹æŒ‡å®šä¹‰æ—¶é—´é—´éš”å°äºè®¾å®šé˜ˆå€¼æ—¶åˆ¤å®šä¸ºé¼ æ ‡æ»šè½®å¦åˆ™ä¸ºé¼ æ ‡æŒ‰é”®ï¼Œè¿™ä¸€è§„åˆ™èƒ½æœ‰æ•ˆåŒºåˆ«æŒ‰é”®ä¸æ»šè½®æ“ä½œ,ä½†é¼ æ ‡æŒ‰é”®å’Œæ»šè½®ä¸èƒ½ä¸€èµ·ä½¿ç”¨
+        //æŒ‰é”®å®šä¹‰åä¼šè·Ÿè¸ªåæ ‡æ‰€ä»¥å·¦é”®å’Œä¸­é”®ä¸èƒ½æ»‘åŠ¨é£ŸæŒ‡äº’ç›¸åˆ‡æ¢éœ€è¦æŠ¬èµ·é£ŸæŒ‡åè¿›è¡Œæ”¹å˜ï¼Œå·¦é”®/ä¸­é”®/å³é”®æŒ‰ä¸‹çš„æƒ…å†µä¸‹ä¸èƒ½è½¬å˜ä¸ºæ»šè½®æ¨¡å¼ï¼Œ
         LARGE_INTEGER MouseButton_Interval;
-        MouseButton_Interval.QuadPart = (tp->current_Ticktime.QuadPart - tp->MousePointer_DefineTime.QuadPart) * tp->tick_Count / 10000;//µ¥Î»msºÁÃë
-        float Mouse_Button_Interval = (float)MouseButton_Interval.LowPart;//Ö¸Õë×óÓÒ²àµÄÊÖÖ¸°´ÏÂÊ±¼äÓëÖ¸Õë¶¨ÒåÆğÊ¼Ê±¼äµÄ¼ä¸ôms
+        MouseButton_Interval.QuadPart = (tp->current_Ticktime.QuadPart - tp->MousePointer_DefineTime.QuadPart) * tp->tick_Count / 10000;//å•ä½msæ¯«ç§’
+        float Mouse_Button_Interval = (float)MouseButton_Interval.LowPart;//æŒ‡é’ˆå·¦å³ä¾§çš„æ‰‹æŒ‡æŒ‰ä¸‹æ—¶é—´ä¸æŒ‡é’ˆå®šä¹‰èµ·å§‹æ—¶é—´çš„é—´éš”ms
         
-        if (currentFinger_Count > 1) {//´¥ÃşµãÊıÁ¿³¬¹ı1²ÅĞèÒªÅĞ¶Ï°´¼ü²Ù×÷
+        if (currentFinger_Count > 1) {//è§¦æ‘¸ç‚¹æ•°é‡è¶…è¿‡1æ‰éœ€è¦åˆ¤æ–­æŒ‰é”®æ“ä½œ
             for (char i = 0; i < currentFinger_Count; i++) {
-                if (i == tp->nMouse_Pointer_CurrentIndex || i == tp->nMouse_LButton_CurrentIndex || i == tp->nMouse_RButton_CurrentIndex || i == tp->nMouse_MButton_CurrentIndex || i == tp->nMouse_Wheel_CurrentIndex) {//iÎªÕıÖµËùÒÔÎŞĞè¼ì²éË÷ÒıºÅÊÇ·ñÎª-1
-                    continue;  // ÒÑ¾­¶¨ÒåµÄÌø¹ı
+                if (i == tp->nMouse_Pointer_CurrentIndex || i == tp->nMouse_LButton_CurrentIndex || i == tp->nMouse_RButton_CurrentIndex || i == tp->nMouse_MButton_CurrentIndex || i == tp->nMouse_Wheel_CurrentIndex) {//iä¸ºæ­£å€¼æ‰€ä»¥æ— éœ€æ£€æŸ¥ç´¢å¼•å·æ˜¯å¦ä¸º-1
+                    continue;  // å·²ç»å®šä¹‰çš„è·³è¿‡
                 }
                 float dx = (float)(tp->currentFinger.Contacts[i].X - tp->currentFinger.Contacts[tp->nMouse_Pointer_CurrentIndex].X);
                 float dy = (float)(tp->currentFinger.Contacts[i].Y - tp->currentFinger.Contacts[tp->nMouse_Pointer_CurrentIndex].Y);
-                float distance = sqrt(dx * dx + dy * dy);//´¥ÃşµãÓëÖ¸ÕëµÄ¾àÀë
+                float distance = sqrt(dx * dx + dy * dy);//è§¦æ‘¸ç‚¹ä¸æŒ‡é’ˆçš„è·ç¦»
 
-                BOOLEAN isWheel = FALSE;//¹öÂÖÄ£Ê½³ÉÁ¢Ìõ¼ş³õÊ¼»¯ÖØÖÃ£¬×¢ÒâbWheelDisabledÓëbMouse_Wheel_Mode_JudgeEnableµÄ×÷ÓÃ²»Í¬£¬²»ÄÜ»ìÏı
-                if (!pDevContext->bWheelDisabled) {//¹öÂÖ¹¦ÄÜ¿ªÆôÊ±
-                    // Ö¸Õë×óÓÒ²àÓĞÊÖÖ¸°´ÏÂ²¢ÇÒÓëÖ¸ÕëÊÖÖ¸ÆğÊ¼¶¨ÒåÊ±¼ä¼ä¸ôĞ¡ÓÚãĞÖµ£¬Ö¸Õë±»¶¨ÒåºóÇø·Ö¹öÂÖ²Ù×÷Ö»ĞèÅĞ¶ÏÒ»´ÎÖ±µ½Ö¸ÕëÏûÊ§£¬ºóĞø°´¼ü²Ù×÷ÅĞ¶Ï²»»á±»Ê±¼äãĞÖµÔ¼ÊøÊ¹µÃÏìÓ¦ËÙ¶È²»ÊÜÓ°Ïì
+                BOOLEAN isWheel = FALSE;//æ»šè½®æ¨¡å¼æˆç«‹æ¡ä»¶åˆå§‹åŒ–é‡ç½®ï¼Œæ³¨æ„bWheelDisabledä¸bMouse_Wheel_Mode_JudgeEnableçš„ä½œç”¨ä¸åŒï¼Œä¸èƒ½æ··æ·†
+                if (!pDevContext->bWheelDisabled) {//æ»šè½®åŠŸèƒ½å¼€å¯æ—¶
+                    // æŒ‡é’ˆå·¦å³ä¾§æœ‰æ‰‹æŒ‡æŒ‰ä¸‹å¹¶ä¸”ä¸æŒ‡é’ˆæ‰‹æŒ‡èµ·å§‹å®šä¹‰æ—¶é—´é—´éš”å°äºé˜ˆå€¼ï¼ŒæŒ‡é’ˆè¢«å®šä¹‰ååŒºåˆ†æ»šè½®æ“ä½œåªéœ€åˆ¤æ–­ä¸€æ¬¡ç›´åˆ°æŒ‡é’ˆæ¶ˆå¤±ï¼Œåç»­æŒ‰é”®æ“ä½œåˆ¤æ–­ä¸ä¼šè¢«æ—¶é—´é˜ˆå€¼çº¦æŸä½¿å¾—å“åº”é€Ÿåº¦ä¸å—å½±å“
                     isWheel = tp->bMouse_Wheel_Mode_JudgeEnable && abs(distance) > tp->FingerMinDistance && abs(distance) < tp->FingerMaxDistance && Mouse_Button_Interval < ButtonPointer_Interval_MSEC;
                 }
                 
-                if (isWheel) {//¹öÂÖÄ£Ê½Ìõ¼ş³ÉÁ¢
-                    tp->bMouse_Wheel_Mode = TRUE;  //¿ªÆô¹öÂÖÄ£Ê½
-                    tp->bMouse_Wheel_Mode_JudgeEnable = FALSE;//¹Ø±Õ¹öÂÖÅĞ±ğ
+                if (isWheel) {//æ»šè½®æ¨¡å¼æ¡ä»¶æˆç«‹
+                    tp->bMouse_Wheel_Mode = TRUE;  //å¼€å¯æ»šè½®æ¨¡å¼
+                    tp->bMouse_Wheel_Mode_JudgeEnable = FALSE;//å…³é—­æ»šè½®åˆ¤åˆ«
 
-                    tp->bGestureCompleted = FALSE; //ÊÖÊÆ²Ù×÷½áÊø±êÖ¾,µ«tp->bPtpReportCollection²»ÒªÖØÖÃ´ıÆäËû´úÂëÀ´´¦Àí
+                    tp->bGestureCompleted = FALSE; //æ‰‹åŠ¿æ“ä½œç»“æŸæ ‡å¿—,ä½†tp->bPtpReportCollectionä¸è¦é‡ç½®å¾…å…¶ä»–ä»£ç æ¥å¤„ç†
 
-                    tp->nMouse_Wheel_CurrentIndex = i;//¹öÂÖ¸¨Öú²Î¿¼ÊÖÖ¸Ë÷ÒıÖµ
-                    //ÊÖÖ¸±ä»¯Ë²¼äÊ±µçÈİ¿ÉÄÜ²»ÎÈ¶¨Ö¸Õë×ø±êÍ»·¢ĞÔÆ¯ÒÆĞèÒªºöÂÔ
-                    tp->JitterFixStartTime = tp->current_Ticktime;//¶¶¶¯ĞŞÕı¿ªÊ¼¼ÆÊ±
-                    tp->Scroll_TotalDistanceX = 0;//ÀÛ¼Æ¹ö¶¯Î»ÒÆÁ¿ÖØÖÃ
-                    tp->Scroll_TotalDistanceY = 0;//ÀÛ¼Æ¹ö¶¯Î»ÒÆÁ¿ÖØÖÃ
+                    tp->nMouse_Wheel_CurrentIndex = i;//æ»šè½®è¾…åŠ©å‚è€ƒæ‰‹æŒ‡ç´¢å¼•å€¼
+                    //æ‰‹æŒ‡å˜åŒ–ç¬é—´æ—¶ç”µå®¹å¯èƒ½ä¸ç¨³å®šæŒ‡é’ˆåæ ‡çªå‘æ€§æ¼‚ç§»éœ€è¦å¿½ç•¥
+                    tp->JitterFixStartTime = tp->current_Ticktime;//æŠ–åŠ¨ä¿®æ­£å¼€å§‹è®¡æ—¶
+                    tp->Scroll_TotalDistanceX = 0;//ç´¯è®¡æ»šåŠ¨ä½ç§»é‡é‡ç½®
+                    tp->Scroll_TotalDistanceY = 0;//ç´¯è®¡æ»šåŠ¨ä½ç§»é‡é‡ç½®
 
 
                     tp->nMouse_LButton_CurrentIndex = -1;
@@ -4438,38 +4450,38 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
                     tp->nMouse_MButton_CurrentIndex = -1;
                     break;
                 }
-                else {//Ç°Ãæ¹öÂÖÄ£Ê½Ìõ¼şÅĞ¶ÏÒÑ¾­ÅÅ³ıÁËËùÒÔ²»ĞèÒª¿¼ÂÇÓëÖ¸ÕëÊÖÖ¸ÆğÊ¼¶¨ÒåÊ±¼ä¼ä¸ô£¬
-                    if (tp->nMouse_MButton_CurrentIndex == -1 && abs(distance) > tp->FingerMinDistance && abs(distance) < tp->FingerClosedThresholdDistance && dx < 0) {//Ö¸Õë×ó²àÓĞ²¢Â£µÄÊÖÖ¸°´ÏÂ
-                        bMouse_MButton_Status = 1; //ÕÒµ½ÖĞ¼ü
-                        tp->nMouse_MButton_CurrentIndex = i;//¸³ÖµÖĞ¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                        continue;  //¼ÌĞøÕÒÆäËû°´¼ü£¬Ê³Ö¸ÒÑ¾­±»ÖĞ¼üÕ¼ÓÃËùÒÔÔ­ÔòÉÏ×ó¼üÒÑ¾­²»¿ÉÓÃ
+                else {//å‰é¢æ»šè½®æ¨¡å¼æ¡ä»¶åˆ¤æ–­å·²ç»æ’é™¤äº†æ‰€ä»¥ä¸éœ€è¦è€ƒè™‘ä¸æŒ‡é’ˆæ‰‹æŒ‡èµ·å§‹å®šä¹‰æ—¶é—´é—´éš”ï¼Œ
+                    if (tp->nMouse_MButton_CurrentIndex == -1 && abs(distance) > tp->FingerMinDistance && abs(distance) < tp->FingerClosedThresholdDistance && dx < 0) {//æŒ‡é’ˆå·¦ä¾§æœ‰å¹¶æ‹¢çš„æ‰‹æŒ‡æŒ‰ä¸‹
+                        bMouse_MButton_Status = 1; //æ‰¾åˆ°ä¸­é”®
+                        tp->nMouse_MButton_CurrentIndex = i;//èµ‹å€¼ä¸­é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                        continue;  //ç»§ç»­æ‰¾å…¶ä»–æŒ‰é”®ï¼Œé£ŸæŒ‡å·²ç»è¢«ä¸­é”®å ç”¨æ‰€ä»¥åŸåˆ™ä¸Šå·¦é”®å·²ç»ä¸å¯ç”¨
                     }
-                    else if (tp->nMouse_LButton_CurrentIndex == -1 && abs(distance) > tp->FingerClosedThresholdDistance && abs(distance) < tp->FingerMaxDistance && dx < 0) {//Ö¸Õë×ó²àÓĞ·Ö¿ªµÄÊÖÖ¸°´ÏÂ
-                        bMouse_LButton_Status = 1; //ÕÒµ½×ó¼ü
-                        tp->nMouse_LButton_CurrentIndex = i;//¸³Öµ×ó¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                        continue;  //¼ÌĞøÕÒÆäËû°´¼ü
+                    else if (tp->nMouse_LButton_CurrentIndex == -1 && abs(distance) > tp->FingerClosedThresholdDistance && abs(distance) < tp->FingerMaxDistance && dx < 0) {//æŒ‡é’ˆå·¦ä¾§æœ‰åˆ†å¼€çš„æ‰‹æŒ‡æŒ‰ä¸‹
+                        bMouse_LButton_Status = 1; //æ‰¾åˆ°å·¦é”®
+                        tp->nMouse_LButton_CurrentIndex = i;//èµ‹å€¼å·¦é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                        continue;  //ç»§ç»­æ‰¾å…¶ä»–æŒ‰é”®
                     }
-                    else if (tp->nMouse_RButton_CurrentIndex == -1 && abs(distance) > tp->FingerMinDistance && abs(distance) < tp->FingerMaxDistance && dx > 0) {//Ö¸ÕëÓÒ²àÓĞÊÖÖ¸°´ÏÂ
-                        bMouse_RButton_Status = 1; //ÕÒµ½ÓÒ¼ü
-                        tp->nMouse_RButton_CurrentIndex = i;//¸³ÖµÓÒ¼ü´¥ÃşµãĞÂË÷ÒıºÅ
-                        continue;  //¼ÌĞøÕÒÆäËû°´¼ü
+                    else if (tp->nMouse_RButton_CurrentIndex == -1 && abs(distance) > tp->FingerMinDistance && abs(distance) < tp->FingerMaxDistance && dx > 0) {//æŒ‡é’ˆå³ä¾§æœ‰æ‰‹æŒ‡æŒ‰ä¸‹
+                        bMouse_RButton_Status = 1; //æ‰¾åˆ°å³é”®
+                        tp->nMouse_RButton_CurrentIndex = i;//èµ‹å€¼å³é”®è§¦æ‘¸ç‚¹æ–°ç´¢å¼•å·
+                        continue;  //ç»§ç»­æ‰¾å…¶ä»–æŒ‰é”®
                     }
                 }
 
             }
         }
         
-        //Êó±êÖ¸ÕëÎ»ÒÆÉèÖÃ
-        if (currentFinger_Count != lastFinger_Count) {//ÊÖÖ¸±ä»¯Ë²¼äÊ±µçÈİ¿ÉÄÜ²»ÎÈ¶¨Ö¸Õë×ø±êÍ»·¢ĞÔÆ¯ÒÆĞèÒªºöÂÔ
-            tp->JitterFixStartTime = tp->current_Ticktime;//¶¶¶¯ĞŞÕı¿ªÊ¼¼ÆÊ±
+        //é¼ æ ‡æŒ‡é’ˆä½ç§»è®¾ç½®
+        if (currentFinger_Count != lastFinger_Count) {//æ‰‹æŒ‡å˜åŒ–ç¬é—´æ—¶ç”µå®¹å¯èƒ½ä¸ç¨³å®šæŒ‡é’ˆåæ ‡çªå‘æ€§æ¼‚ç§»éœ€è¦å¿½ç•¥
+            tp->JitterFixStartTime = tp->current_Ticktime;//æŠ–åŠ¨ä¿®æ­£å¼€å§‹è®¡æ—¶
         }
         else {
             LARGE_INTEGER FixTimer;
-            FixTimer.QuadPart = (tp->current_Ticktime.QuadPart - tp->JitterFixStartTime.QuadPart) * tp->tick_Count / 10000;//µ¥Î»msºÁÃë
-            float JitterFixTimer = (float)FixTimer.LowPart;//µ±Ç°¶¶¶¯Ê±¼ä¼ÆÊ±
+            FixTimer.QuadPart = (tp->current_Ticktime.QuadPart - tp->JitterFixStartTime.QuadPart) * tp->tick_Count / 10000;//å•ä½msæ¯«ç§’
+            float JitterFixTimer = (float)FixTimer.LowPart;//å½“å‰æŠ–åŠ¨æ—¶é—´è®¡æ—¶
 
             float STABLE_INTERVAL;
-            if (tp->nMouse_MButton_CurrentIndex != -1) {//ÖĞ¼ü×´Ì¬ÏÂÊÖÖ¸²¢Â£µÄ¶¶¶¯ĞŞÕıÖµÇø±ğ´¦Àí
+            if (tp->nMouse_MButton_CurrentIndex != -1) {//ä¸­é”®çŠ¶æ€ä¸‹æ‰‹æŒ‡å¹¶æ‹¢çš„æŠ–åŠ¨ä¿®æ­£å€¼åŒºåˆ«å¤„ç†
                 STABLE_INTERVAL = STABLE_INTERVAL_FingerClosed_MSEC;
             }
             else {
@@ -4482,12 +4494,12 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
             float px = (float)(diffX / tp->thumb_Scale);
             float py = (float)(diffY / tp->thumb_Scale);
 
-            if (JitterFixTimer < STABLE_INTERVAL) {//´¥ÃşµãÎÈ¶¨Ç°ĞŞÕı
-                if (tp->nMouse_LButton_CurrentIndex != -1 || tp->nMouse_RButton_CurrentIndex != -1 || tp->nMouse_MButton_CurrentIndex != -1) {//ÓĞ°´¼üÊ±ĞŞÕı£¬µ¥Ö¸ÕëÊ±²»ĞèÒªÊ¹µÃÖ¸Õë¸ü¾«È·
-                    if (abs(px) <= Jitter_Offset) {//Ö¸ÕëÇáÎ¢¶¶¶¯ĞŞÕı
+            if (JitterFixTimer < STABLE_INTERVAL) {//è§¦æ‘¸ç‚¹ç¨³å®šå‰ä¿®æ­£
+                if (tp->nMouse_LButton_CurrentIndex != -1 || tp->nMouse_RButton_CurrentIndex != -1 || tp->nMouse_MButton_CurrentIndex != -1) {//æœ‰æŒ‰é”®æ—¶ä¿®æ­£ï¼Œå•æŒ‡é’ˆæ—¶ä¸éœ€è¦ä½¿å¾—æŒ‡é’ˆæ›´ç²¾ç¡®
+                    if (abs(px) <= Jitter_Offset) {//æŒ‡é’ˆè½»å¾®æŠ–åŠ¨ä¿®æ­£
                         px = 0;
                     }
-                    if (abs(py) <= Jitter_Offset) {//Ö¸ÕëÇáÎ¢¶¶¶¯ĞŞÕı
+                    if (abs(py) <= Jitter_Offset) {//æŒ‡é’ˆè½»å¾®æŠ–åŠ¨ä¿®æ­£
                         py = 0;
                     }
                 }
@@ -4498,7 +4510,7 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
             mReport.dx = (CHAR)xx;
             mReport.dy = (CHAR)yy;
 
-            if (abs(xx) > 0.5 && abs(xx) < 1) {//ÂıËÙ¾«Ï¸ÒÆ¶¯Ö¸ÕëĞŞÕı
+            if (abs(xx) > 0.5 && abs(xx) < 1) {//æ…¢é€Ÿç²¾ç»†ç§»åŠ¨æŒ‡é’ˆä¿®æ­£
                 if (xx > 0) {
                     mReport.dx = 1;
                 }
@@ -4507,7 +4519,7 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
                 }
 
             }
-            if (abs(yy) > 0.5 && abs(yy) < 1) {//ÂıËÙ¾«Ï¸ÒÆ¶¯Ö¸ÕëĞŞÕı
+            if (abs(yy) > 0.5 && abs(yy) < 1) {//æ…¢é€Ÿç²¾ç»†ç§»åŠ¨æŒ‡é’ˆä¿®æ­£
                 if (xx > 0) {
                     mReport.dy = 1;
                 }
@@ -4518,36 +4530,36 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
 
         }
     }
-    else if (tp->nMouse_Pointer_CurrentIndex != -1 && tp->bMouse_Wheel_Mode) {//¹öÂÖ²Ù×÷Ä£Ê½£¬´¥Ãş°åË«Ö¸»¬¶¯¡¢ÈıÖ¸ËÄÖ¸ÊÖÊÆÒ²¹éÎª´ËÄ£Ê½ÏÂµÄÌØÀıÉèÖÃÒ»¸öÊÖÊÆ×´Ì¬¿ª¹Ø¹©ºóĞøÅĞ¶ÏÊ¹ÓÃ
-        if (!pDevContext->bWheelScrollMode || currentFinger_Count >2) {//´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆÄ£Ê½£¬ÈıÖ¸ËÄÖ¸ÊÖÊÆÒ²¹éÎª´ËÄ£Ê½
-            tp->bPtpReportCollection = TRUE;//·¢ËÍPTP´¥Ãş°å¼¯ºÏ±¨¸æ£¬ºóĞøÔÙ×ö½øÒ»²½ÅĞ¶Ï
+    else if (tp->nMouse_Pointer_CurrentIndex != -1 && tp->bMouse_Wheel_Mode) {//æ»šè½®æ“ä½œæ¨¡å¼ï¼Œè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨ã€ä¸‰æŒ‡å››æŒ‡æ‰‹åŠ¿ä¹Ÿå½’ä¸ºæ­¤æ¨¡å¼ä¸‹çš„ç‰¹ä¾‹è®¾ç½®ä¸€ä¸ªæ‰‹åŠ¿çŠ¶æ€å¼€å…³ä¾›åç»­åˆ¤æ–­ä½¿ç”¨
+        if (!pDevContext->bWheelScrollMode || currentFinger_Count >2) {//è§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿æ¨¡å¼ï¼Œä¸‰æŒ‡å››æŒ‡æ‰‹åŠ¿ä¹Ÿå½’ä¸ºæ­¤æ¨¡å¼
+            tp->bPtpReportCollection = TRUE;//å‘é€PTPè§¦æ‘¸æ¿é›†åˆæŠ¥å‘Šï¼Œåç»­å†åšè¿›ä¸€æ­¥åˆ¤æ–­
         }
         else {
-            //Êó±êÖ¸ÕëÎ»ÒÆÉèÖÃ
+            //é¼ æ ‡æŒ‡é’ˆä½ç§»è®¾ç½®
             LARGE_INTEGER FixTimer;
-            FixTimer.QuadPart = (tp->current_Ticktime.QuadPart - tp->JitterFixStartTime.QuadPart) * tp->tick_Count / 10000;//µ¥Î»msºÁÃë
-            float JitterFixTimer = (float)FixTimer.LowPart;//µ±Ç°¶¶¶¯Ê±¼ä¼ÆÊ±
+            FixTimer.QuadPart = (tp->current_Ticktime.QuadPart - tp->JitterFixStartTime.QuadPart) * tp->tick_Count / 10000;//å•ä½msæ¯«ç§’
+            float JitterFixTimer = (float)FixTimer.LowPart;//å½“å‰æŠ–åŠ¨æ—¶é—´è®¡æ—¶
 
             float px = (float)(tp->currentFinger.Contacts[tp->nMouse_Pointer_CurrentIndex].X - tp->lastFinger.Contacts[tp->nMouse_Pointer_LastIndex].X) / tp->thumb_Scale;
             float py = (float)(tp->currentFinger.Contacts[tp->nMouse_Pointer_CurrentIndex].Y - tp->lastFinger.Contacts[tp->nMouse_Pointer_LastIndex].Y) / tp->thumb_Scale;
 
-            if (JitterFixTimer < STABLE_INTERVAL_FingerClosed_MSEC) {//Ö»ĞèÔÚ´¥ÃşµãÎÈ¶¨Ç°ĞŞÕı
-                if (abs(px) <= Jitter_Offset) {//Ö¸ÕëÇáÎ¢¶¶¶¯ĞŞÕı
+            if (JitterFixTimer < STABLE_INTERVAL_FingerClosed_MSEC) {//åªéœ€åœ¨è§¦æ‘¸ç‚¹ç¨³å®šå‰ä¿®æ­£
+                if (abs(px) <= Jitter_Offset) {//æŒ‡é’ˆè½»å¾®æŠ–åŠ¨ä¿®æ­£
                     px = 0;
                 }
-                if (abs(py) <= Jitter_Offset) {//Ö¸ÕëÇáÎ¢¶¶¶¯ĞŞÕı
+                if (abs(py) <= Jitter_Offset) {//æŒ‡é’ˆè½»å¾®æŠ–åŠ¨ä¿®æ­£
                     py = 0;
                 }
             }
 
-            int direction_hscale = 1;//¹ö¶¯·½ÏòËõ·Å±ÈÀı
-            int direction_vscale = 1;//¹ö¶¯·½ÏòËõ·Å±ÈÀı
+            int direction_hscale = 1;//æ»šåŠ¨æ–¹å‘ç¼©æ”¾æ¯”ä¾‹
+            int direction_vscale = 1;//æ»šåŠ¨æ–¹å‘ç¼©æ”¾æ¯”ä¾‹
 
-            if (abs(px) > abs(py) / 4) {//¹ö¶¯·½ÏòÎÈ¶¨ĞÔĞŞÕı
+            if (abs(px) > abs(py) / 4) {//æ»šåŠ¨æ–¹å‘ç¨³å®šæ€§ä¿®æ­£
                 direction_hscale = 1;
                 direction_vscale = 8;
             }
-            if (abs(py) > abs(px) / 4) {//¹ö¶¯·½ÏòÎÈ¶¨ĞÔĞŞÕı
+            if (abs(py) > abs(px) / 4) {//æ»šåŠ¨æ–¹å‘ç¨³å®šæ€§ä¿®æ­£
                 direction_hscale = 8;
                 direction_vscale = 1;
             }
@@ -4558,81 +4570,81 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
             px = (float)(pDevContext->MouseSensitivity_Value * px / tp->PointerSensitivity_x);
             py = (float)(pDevContext->MouseSensitivity_Value * py / tp->PointerSensitivity_y);
 
-            tp->Scroll_TotalDistanceX += px;//ÀÛ¼Æ¹ö¶¯Î»ÒÆÁ¿
-            tp->Scroll_TotalDistanceY += py;//ÀÛ¼Æ¹ö¶¯Î»ÒÆÁ¿
+            tp->Scroll_TotalDistanceX += px;//ç´¯è®¡æ»šåŠ¨ä½ç§»é‡
+            tp->Scroll_TotalDistanceY += py;//ç´¯è®¡æ»šåŠ¨ä½ç§»é‡
 
-            //ÅĞ¶Ï¹ö¶¯Á¿
-            if (abs(tp->Scroll_TotalDistanceX) > SCROLL_OFFSET_THRESHOLD_X) {//Î»ÒÆÁ¿³¬¹ıãĞÖµ
+            //åˆ¤æ–­æ»šåŠ¨é‡
+            if (abs(tp->Scroll_TotalDistanceX) > SCROLL_OFFSET_THRESHOLD_X) {//ä½ç§»é‡è¶…è¿‡é˜ˆå€¼
                 int h = (int)(abs(tp->Scroll_TotalDistanceX) / SCROLL_OFFSET_THRESHOLD_X);
-                mReport.h_wheel = (char)(tp->Scroll_TotalDistanceX > 0 ? h : -h);//¹ö¶¯ĞĞÊı
+                mReport.h_wheel = (char)(tp->Scroll_TotalDistanceX > 0 ? h : -h);//æ»šåŠ¨è¡Œæ•°
 
-                float r = abs(tp->Scroll_TotalDistanceX) - SCROLL_OFFSET_THRESHOLD_X * h;// ¹ö¶¯Î»ÒÆÁ¿ÓàÊı¾ø¶ÔÖµ
-                tp->Scroll_TotalDistanceX = tp->Scroll_TotalDistanceX > 0 ? r : -r;//¹ö¶¯Î»ÒÆÁ¿ÓàÊı
+                float r = abs(tp->Scroll_TotalDistanceX) - SCROLL_OFFSET_THRESHOLD_X * h;// æ»šåŠ¨ä½ç§»é‡ä½™æ•°ç»å¯¹å€¼
+                tp->Scroll_TotalDistanceX = tp->Scroll_TotalDistanceX > 0 ? r : -r;//æ»šåŠ¨ä½ç§»é‡ä½™æ•°
             }
-            if (abs(tp->Scroll_TotalDistanceY) > SCROLL_OFFSET_THRESHOLD_Y) {//Î»ÒÆÁ¿³¬¹ıãĞÖµ
+            if (abs(tp->Scroll_TotalDistanceY) > SCROLL_OFFSET_THRESHOLD_Y) {//ä½ç§»é‡è¶…è¿‡é˜ˆå€¼
                 int v = (int)(abs(tp->Scroll_TotalDistanceY) / SCROLL_OFFSET_THRESHOLD_Y);
-                mReport.v_wheel = (char)(tp->Scroll_TotalDistanceY > 0 ? v : -v);//¹ö¶¯ĞĞÊı
+                mReport.v_wheel = (char)(tp->Scroll_TotalDistanceY > 0 ? v : -v);//æ»šåŠ¨è¡Œæ•°
 
-                float r = abs(tp->Scroll_TotalDistanceY) - SCROLL_OFFSET_THRESHOLD_Y * v;// ¹ö¶¯Î»ÒÆÁ¿ÓàÊı¾ø¶ÔÖµ
-                tp->Scroll_TotalDistanceY = tp->Scroll_TotalDistanceY > 0 ? r : -r;//¹ö¶¯Î»ÒÆÁ¿ÓàÊı
+                float r = abs(tp->Scroll_TotalDistanceY) - SCROLL_OFFSET_THRESHOLD_Y * v;// æ»šåŠ¨ä½ç§»é‡ä½™æ•°ç»å¯¹å€¼
+                tp->Scroll_TotalDistanceY = tp->Scroll_TotalDistanceY > 0 ? r : -r;//æ»šåŠ¨ä½ç§»é‡ä½™æ•°
             }
         }
         
     }
     else {
-        //ÆäËû×éºÏÎŞĞ§
+        //å…¶ä»–ç»„åˆæ— æ•ˆ
     }
 
 
-    if (tp->bPtpReportCollection) {//´¥Ãş°å¼¯ºÏ£¬ÊÖÊÆÄ£Ê½ÅĞ¶Ï
-        if (!tp->bMouse_Wheel_Mode) {//ÒÔÖ¸ÕëÊÖÖ¸ÊÍ·ÅÎª¹öÂÖÄ£Ê½½áÊø±êÖ¾£¬ÏÂÒ»Ö¡bPtpReportCollection»áÉèÖÃFALSEËùÒÔÖ»»á·¢ËÍÒ»´Î¹¹ÔìµÄÊÖÊÆ½áÊø±¨¸æ
-            tp->bPtpReportCollection = FALSE;//PTP´¥Ãş°å¼¯ºÏ±¨¸æÄ£Ê½½áÊø
-            tp->bGestureCompleted = TRUE;//½áÊøÊÖÊÆ²Ù×÷£¬¸ÃÊı¾İºÍbMouse_Wheel_ModeÇø·Ö¿ªÁË£¬ÒòÎªbGestureCompleted¿ÉÄÜ»á±ÈbMouse_Wheel_ModeÌáÇ°½áÊø
+    if (tp->bPtpReportCollection) {//è§¦æ‘¸æ¿é›†åˆï¼Œæ‰‹åŠ¿æ¨¡å¼åˆ¤æ–­
+        if (!tp->bMouse_Wheel_Mode) {//ä»¥æŒ‡é’ˆæ‰‹æŒ‡é‡Šæ”¾ä¸ºæ»šè½®æ¨¡å¼ç»“æŸæ ‡å¿—ï¼Œä¸‹ä¸€å¸§bPtpReportCollectionä¼šè®¾ç½®FALSEæ‰€ä»¥åªä¼šå‘é€ä¸€æ¬¡æ„é€ çš„æ‰‹åŠ¿ç»“æŸæŠ¥å‘Š
+            tp->bPtpReportCollection = FALSE;//PTPè§¦æ‘¸æ¿é›†åˆæŠ¥å‘Šæ¨¡å¼ç»“æŸ
+            tp->bGestureCompleted = TRUE;//ç»“æŸæ‰‹åŠ¿æ“ä½œï¼Œè¯¥æ•°æ®å’ŒbMouse_Wheel_ModeåŒºåˆ†å¼€äº†ï¼Œå› ä¸ºbGestureCompletedå¯èƒ½ä¼šæ¯”bMouse_Wheel_Modeæå‰ç»“æŸ
             KdPrint(("MouseLikeTouchPad_parse bPtpReportCollection bGestureCompleted0,%x\n", status));
 
-            //¹¹ÔìÈ«²¿ÊÖÖ¸ÊÍ·ÅµÄÁÙÊ±Êı¾İ°ü,TipSwitchÓò¹éÁã£¬windowsÊÖÊÆ²Ù×÷½áÊøÊ±ĞèÒªÊÖÖ¸Àë¿ªµÄµãxy×ø±êÊı¾İ
+            //æ„é€ å…¨éƒ¨æ‰‹æŒ‡é‡Šæ”¾çš„ä¸´æ—¶æ•°æ®åŒ…,TipSwitchåŸŸå½’é›¶ï¼Œwindowsæ‰‹åŠ¿æ“ä½œç»“æŸæ—¶éœ€è¦æ‰‹æŒ‡ç¦»å¼€çš„ç‚¹xyåæ ‡æ•°æ®
             PTP_REPORT CompletedGestureReport;
             RtlCopyMemory(&CompletedGestureReport, &tp->currentFinger, sizeof(PTP_REPORT));
             for (int i = 0; i < currentFinger_Count; i++) {
                 CompletedGestureReport.Contacts[i].TipSwitch = 0;
             }
 
-            //·¢ËÍptp±¨¸æ
+            //å‘é€ptpæŠ¥å‘Š
             status = SendPtpMultiTouchReport(pDevContext, &CompletedGestureReport, sizeof(PTP_REPORT));
             if (!NT_SUCCESS(status)) {
                 KdPrint(("MouseLikeTouchPad_parse SendPtpMultiTouchReport CompletedGestureReport failed,%x\n", status));
             }
 
         }
-        else if(tp->bMouse_Wheel_Mode && currentFinger_Count == 1 && !tp->bGestureCompleted) {//¹öÂÖÄ£Ê½Î´½áÊø²¢ÇÒÊ£ÏÂÖ¸ÕëÊÖÖ¸ÁôÔÚ´¥Ãş°åÉÏ,ĞèÒªÅäºÏbGestureCompleted±êÖ¾ÅĞ¶ÏÊ¹µÃ¹¹ÔìµÄÊÖÊÆ½áÊø±¨¸æÖ»·¢ËÍÒ»´Î
-            tp->bPtpReportCollection = FALSE;//PTP´¥Ãş°å¼¯ºÏ±¨¸æÄ£Ê½½áÊø
-            tp->bGestureCompleted = TRUE;//ÌáÇ°½áÊøÊÖÊÆ²Ù×÷£¬¸ÃÊı¾İºÍbMouse_Wheel_ModeÇø·Ö¿ªÁË£¬ÒòÎªbGestureCompleted¿ÉÄÜ»á±ÈbMouse_Wheel_ModeÌáÇ°½áÊø
+        else if(tp->bMouse_Wheel_Mode && currentFinger_Count == 1 && !tp->bGestureCompleted) {//æ»šè½®æ¨¡å¼æœªç»“æŸå¹¶ä¸”å‰©ä¸‹æŒ‡é’ˆæ‰‹æŒ‡ç•™åœ¨è§¦æ‘¸æ¿ä¸Š,éœ€è¦é…åˆbGestureCompletedæ ‡å¿—åˆ¤æ–­ä½¿å¾—æ„é€ çš„æ‰‹åŠ¿ç»“æŸæŠ¥å‘Šåªå‘é€ä¸€æ¬¡
+            tp->bPtpReportCollection = FALSE;//PTPè§¦æ‘¸æ¿é›†åˆæŠ¥å‘Šæ¨¡å¼ç»“æŸ
+            tp->bGestureCompleted = TRUE;//æå‰ç»“æŸæ‰‹åŠ¿æ“ä½œï¼Œè¯¥æ•°æ®å’ŒbMouse_Wheel_ModeåŒºåˆ†å¼€äº†ï¼Œå› ä¸ºbGestureCompletedå¯èƒ½ä¼šæ¯”bMouse_Wheel_Modeæå‰ç»“æŸ
             KdPrint(("MouseLikeTouchPad_parse bPtpReportCollection bGestureCompleted1,%x\n", status));
 
-            //¹¹ÔìÖ¸ÕëÊÖÖ¸ÊÍ·ÅµÄÁÙÊ±Êı¾İ°ü,TipSwitchÓò¹éÁã£¬windowsÊÖÊÆ²Ù×÷½áÊøÊ±ĞèÒªÊÖÖ¸Àë¿ªµÄµãxy×ø±êÊı¾İ
+            //æ„é€ æŒ‡é’ˆæ‰‹æŒ‡é‡Šæ”¾çš„ä¸´æ—¶æ•°æ®åŒ…,TipSwitchåŸŸå½’é›¶ï¼Œwindowsæ‰‹åŠ¿æ“ä½œç»“æŸæ—¶éœ€è¦æ‰‹æŒ‡ç¦»å¼€çš„ç‚¹xyåæ ‡æ•°æ®
             PTP_REPORT CompletedGestureReport2;
             RtlCopyMemory(&CompletedGestureReport2, &tp->currentFinger, sizeof(PTP_REPORT));
             CompletedGestureReport2.Contacts[0].TipSwitch = 0;
 
-            //·¢ËÍptp±¨¸æ
+            //å‘é€ptpæŠ¥å‘Š
             status = SendPtpMultiTouchReport(pDevContext, &CompletedGestureReport2, sizeof(PTP_REPORT));
             if (!NT_SUCCESS(status)) {
                 KdPrint(("MouseLikeTouchPad_parse SendPtpMultiTouchReport CompletedGestureReport2 failed,%x\n", status));
             }
         }
 
-        if (!tp->bGestureCompleted) {//ÊÖÊÆÎ´½áÊø£¬Õı³£·¢ËÍ±¨¸æ
+        if (!tp->bGestureCompleted) {//æ‰‹åŠ¿æœªç»“æŸï¼Œæ­£å¸¸å‘é€æŠ¥å‘Š
             KdPrint(("MouseLikeTouchPad_parse bPtpReportCollection bGestureCompleted2,%x\n", status));
-            //·¢ËÍptp±¨¸æ
+            //å‘é€ptpæŠ¥å‘Š
             status = SendPtpMultiTouchReport(pDevContext, pPtpReport, sizeof(PTP_REPORT));
             if (!NT_SUCCESS(status)) {
                 KdPrint(("MouseLikeTouchPad_parse SendPtpMultiTouchReport failed,%x\n", status));
             }
         }
     }
-    else{//·¢ËÍMouseCollection
-        mReport.button = bMouse_LButton_Status + (bMouse_RButton_Status << 1) + (bMouse_MButton_Status << 2) + (bMouse_BButton_Status << 3) + (bMouse_FButton_Status << 4);  //×óÖĞÓÒºóÍËÇ°½ø¼ü×´Ì¬ºÏ³É
-        //·¢ËÍÊó±ê±¨¸æ
+    else{//å‘é€MouseCollection
+        mReport.button = bMouse_LButton_Status + (bMouse_RButton_Status << 1) + (bMouse_MButton_Status << 2) + (bMouse_BButton_Status << 3) + (bMouse_FButton_Status << 4);  //å·¦ä¸­å³åé€€å‰è¿›é”®çŠ¶æ€åˆæˆ
+        //å‘é€é¼ æ ‡æŠ¥å‘Š
         status = SendPtpMouseReport(pDevContext, &mReport);
         if (!NT_SUCCESS(status)) {
             KdPrint(("MouseLikeTouchPad_parse SendPtpMouseReport failed,%x\n", status));
@@ -4640,7 +4652,7 @@ void MouseLikeTouchPad_parse(PDEVICE_CONTEXT pDevContext, PTP_REPORT* pPtpReport
     }
     
 
-    //±£´æÏÂÒ»ÂÖËùÓĞ´¥ÃşµãµÄ³õÊ¼×ø±ê¼°¹¦ÄÜ¶¨ÒåË÷ÒıºÅ
+    //ä¿å­˜ä¸‹ä¸€è½®æ‰€æœ‰è§¦æ‘¸ç‚¹çš„åˆå§‹åæ ‡åŠåŠŸèƒ½å®šä¹‰ç´¢å¼•å·
     tp->lastFinger = tp->currentFinger;
 
     lastFinger_Count = currentFinger_Count;
@@ -4664,27 +4676,27 @@ void MouseLikeTouchPad_parse_init(PDEVICE_CONTEXT pDevContext)
 {
     PTP_PARSER* tp= &pDevContext->tp_settings;
 
-    tp->nMouse_Pointer_CurrentIndex = -1; //¶¨Òåµ±Ç°Êó±êÖ¸Õë´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-    tp->nMouse_LButton_CurrentIndex = -1; //¶¨Òåµ±Ç°Êó±ê×ó¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-    tp->nMouse_RButton_CurrentIndex = -1; //¶¨Òåµ±Ç°Êó±êÓÒ¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-    tp->nMouse_MButton_CurrentIndex = -1; //¶¨Òåµ±Ç°Êó±êÖĞ¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-    tp->nMouse_Wheel_CurrentIndex = -1; //¶¨Òåµ±Ç°Êó±ê¹öÂÖ¸¨Öú²Î¿¼ÊÖÖ¸´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
+    tp->nMouse_Pointer_CurrentIndex = -1; //å®šä¹‰å½“å‰é¼ æ ‡æŒ‡é’ˆè§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+    tp->nMouse_LButton_CurrentIndex = -1; //å®šä¹‰å½“å‰é¼ æ ‡å·¦é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+    tp->nMouse_RButton_CurrentIndex = -1; //å®šä¹‰å½“å‰é¼ æ ‡å³é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+    tp->nMouse_MButton_CurrentIndex = -1; //å®šä¹‰å½“å‰é¼ æ ‡ä¸­é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+    tp->nMouse_Wheel_CurrentIndex = -1; //å®šä¹‰å½“å‰é¼ æ ‡æ»šè½®è¾…åŠ©å‚è€ƒæ‰‹æŒ‡è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
 
-   tp-> nMouse_Pointer_LastIndex = -1; //¶¨ÒåÉÏ´ÎÊó±êÖ¸Õë´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-   tp->nMouse_LButton_LastIndex = -1; //¶¨ÒåÉÏ´ÎÊó±ê×ó¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-   tp->nMouse_RButton_LastIndex = -1; //¶¨ÒåÉÏ´ÎÊó±êÓÒ¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-   tp->nMouse_MButton_LastIndex = -1; //¶¨ÒåÉÏ´ÎÊó±êÖĞ¼ü´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
-   tp->nMouse_Wheel_LastIndex = -1; //¶¨ÒåÉÏ´ÎÊó±ê¹öÂÖ¸¨Öú²Î¿¼ÊÖÖ¸´¥Ãşµã×ø±êµÄÊı¾İË÷ÒıºÅ£¬-1ÎªÎ´¶¨Òå
+   tp-> nMouse_Pointer_LastIndex = -1; //å®šä¹‰ä¸Šæ¬¡é¼ æ ‡æŒ‡é’ˆè§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+   tp->nMouse_LButton_LastIndex = -1; //å®šä¹‰ä¸Šæ¬¡é¼ æ ‡å·¦é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+   tp->nMouse_RButton_LastIndex = -1; //å®šä¹‰ä¸Šæ¬¡é¼ æ ‡å³é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+   tp->nMouse_MButton_LastIndex = -1; //å®šä¹‰ä¸Šæ¬¡é¼ æ ‡ä¸­é”®è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
+   tp->nMouse_Wheel_LastIndex = -1; //å®šä¹‰ä¸Šæ¬¡é¼ æ ‡æ»šè½®è¾…åŠ©å‚è€ƒæ‰‹æŒ‡è§¦æ‘¸ç‚¹åæ ‡çš„æ•°æ®ç´¢å¼•å·ï¼Œ-1ä¸ºæœªå®šä¹‰
 
-   pDevContext->bWheelDisabled = FALSE;//Ä¬ÈÏ³õÊ¼ÖµÎª¿ªÆô¹öÂÖ²Ù×÷¹¦ÄÜ
-   pDevContext->bWheelScrollMode = FALSE;//Ä¬ÈÏ³õÊ¼ÖµÎª´¥Ãş°åË«Ö¸»¬¶¯ÊÖÊÆ
+   pDevContext->bWheelDisabled = FALSE;//é»˜è®¤åˆå§‹å€¼ä¸ºå¼€å¯æ»šè½®æ“ä½œåŠŸèƒ½
+   pDevContext->bWheelScrollMode = FALSE;//é»˜è®¤åˆå§‹å€¼ä¸ºè§¦æ‘¸æ¿åŒæŒ‡æ»‘åŠ¨æ‰‹åŠ¿
 
 
    tp->bMouse_Wheel_Mode = FALSE;
-   tp->bMouse_Wheel_Mode_JudgeEnable = TRUE;//¿ªÆô¹öÂÖÅĞ±ğ
+   tp->bMouse_Wheel_Mode_JudgeEnable = TRUE;//å¼€å¯æ»šè½®åˆ¤åˆ«
 
-   tp->bGestureCompleted = FALSE; //ÊÖÊÆ²Ù×÷½áÊø±êÖ¾
-   tp->bPtpReportCollection = FALSE;//Ä¬ÈÏÊó±ê¼¯ºÏ
+   tp->bGestureCompleted = FALSE; //æ‰‹åŠ¿æ“ä½œç»“æŸæ ‡å¿—
+   tp->bPtpReportCollection = FALSE;//é»˜è®¤é¼ æ ‡é›†åˆ
 
    RtlZeroMemory(&tp->lastFinger, sizeof(PTP_REPORT));
    RtlZeroMemory(&tp->currentFinger, sizeof(PTP_REPORT));
@@ -4704,12 +4716,12 @@ void SetNextThumbScale(PDEVICE_CONTEXT pDevContext)
     UCHAR ts_idx = pDevContext->ThumbScale_Index;// thumb_Scale_Normal;//thumb_Scale_Little//thumb_Scale_Big
 
     ts_idx++;
-    if (ts_idx == 3) {//ÁéÃô¶ÈÑ­»·ÉèÖÃ
+    if (ts_idx == 3) {//çµæ•åº¦å¾ªç¯è®¾ç½®
         ts_idx = 0;
     }
 
-    //±£´æ×¢²á±íÁéÃô¶ÈÉèÖÃÊıÖµ
-    NTSTATUS status = SetRegisterThumbScale(pDevContext, ts_idx);//MouseSensitivityTable´æ´¢±íµÄĞòºÅÖµ
+    //ä¿å­˜æ³¨å†Œè¡¨çµæ•åº¦è®¾ç½®æ•°å€¼
+    NTSTATUS status = SetRegisterThumbScale(pDevContext, ts_idx);//MouseSensitivityTableå­˜å‚¨è¡¨çš„åºå·å€¼
     if (!NT_SUCCESS(status))
     {
         KdPrint(("SetNextThumbScale SetRegisterThumbScale err,%x\n", status));
@@ -4720,11 +4732,11 @@ void SetNextThumbScale(PDEVICE_CONTEXT pDevContext)
     pDevContext->ThumbScale_Value = ThumbScaleTable[ts_idx];
 
     PTP_PARSER* tp = &pDevContext->tp_settings;
-    //¶¯Ì¬µ÷ÕûÊÖÖ¸Í·´óĞ¡³£Á¿
-    tp->thumb_Scale = (float)(pDevContext->ThumbScale_Value);//ÊÖÖ¸Í·³ß´çËõ·Å±ÈÀı£¬
-    tp->FingerMinDistance = 12 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//¶¨ÒåÓĞĞ§µÄÏàÁÚÊÖÖ¸×îĞ¡¾àÀë
-    tp->FingerClosedThresholdDistance = 16 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//¶¨ÒåÏàÁÚÊÖÖ¸ºÏÂ£Ê±µÄ×îĞ¡¾àÀë
-    tp->FingerMaxDistance = tp->FingerMinDistance * 4;//¶¨ÒåÓĞĞ§µÄÏàÁÚÊÖÖ¸×î´ó¾àÀë(FingerMinDistance*4) 
+    //åŠ¨æ€è°ƒæ•´æ‰‹æŒ‡å¤´å¤§å°å¸¸é‡
+    tp->thumb_Scale = (float)(pDevContext->ThumbScale_Value);//æ‰‹æŒ‡å¤´å°ºå¯¸ç¼©æ”¾æ¯”ä¾‹ï¼Œ
+    tp->FingerMinDistance = 12 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//å®šä¹‰æœ‰æ•ˆçš„ç›¸é‚»æ‰‹æŒ‡æœ€å°è·ç¦»
+    tp->FingerClosedThresholdDistance = 16 * tp->TouchPad_DPMM_x * tp->thumb_Scale;//å®šä¹‰ç›¸é‚»æ‰‹æŒ‡åˆæ‹¢æ—¶çš„æœ€å°è·ç¦»
+    tp->FingerMaxDistance = tp->FingerMinDistance * 4;//å®šä¹‰æœ‰æ•ˆçš„ç›¸é‚»æ‰‹æŒ‡æœ€å¤§è·ç¦»(FingerMinDistance*4) 
 
     KdPrint(("SetNextThumbScale pDevContext->ThumbScale_Index,%x\n", pDevContext->ThumbScale_Index));
 
@@ -4733,7 +4745,7 @@ void SetNextThumbScale(PDEVICE_CONTEXT pDevContext)
 }
 
 
-NTSTATUS SetRegisterThumbScale(PDEVICE_CONTEXT pDevContext, ULONG ts_idx)//±£´æÉèÖÃµ½×¢²á±í
+NTSTATUS SetRegisterThumbScale(PDEVICE_CONTEXT pDevContext, ULONG ts_idx)//ä¿å­˜è®¾ç½®åˆ°æ³¨å†Œè¡¨
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device = pDevContext->FxDevice;
@@ -4766,7 +4778,7 @@ NTSTATUS SetRegisterThumbScale(PDEVICE_CONTEXT pDevContext, ULONG ts_idx)//±£´æÉ
 }
 
 
-NTSTATUS GetRegisterThumbScale(PDEVICE_CONTEXT pDevContext, ULONG* ts_idx)//´Ó×¢²á±í¶ÁÈ¡ÉèÖÃ
+NTSTATUS GetRegisterThumbScale(PDEVICE_CONTEXT pDevContext, ULONG* ts_idx)//ä»æ³¨å†Œè¡¨è¯»å–è®¾ç½®
 {
 
     NTSTATUS status = STATUS_SUCCESS;
@@ -4806,12 +4818,12 @@ void SetNextSensitivity(PDEVICE_CONTEXT pDevContext)
     UCHAR ms_idx = pDevContext->MouseSensitivity_Index;// MouseSensitivity_Normal;//MouseSensitivity_Slow//MouseSensitivity_FAST
 
     ms_idx++;
-    if (ms_idx == 3) {//ÁéÃô¶ÈÑ­»·ÉèÖÃ
+    if (ms_idx == 3) {//çµæ•åº¦å¾ªç¯è®¾ç½®
         ms_idx = 0;
     }
 
-    //±£´æ×¢²á±íÁéÃô¶ÈÉèÖÃÊıÖµ
-    NTSTATUS status = SetRegisterMouseSensitivity(pDevContext, ms_idx);//MouseSensitivityTable´æ´¢±íµÄĞòºÅÖµ
+    //ä¿å­˜æ³¨å†Œè¡¨çµæ•åº¦è®¾ç½®æ•°å€¼
+    NTSTATUS status = SetRegisterMouseSensitivity(pDevContext, ms_idx);//MouseSensitivityTableå­˜å‚¨è¡¨çš„åºå·å€¼
     if (!NT_SUCCESS(status))
     {
         KdPrint(("SetNextSensitivity SetRegisterMouseSensitivity err,%x\n", status));
@@ -4826,7 +4838,7 @@ void SetNextSensitivity(PDEVICE_CONTEXT pDevContext)
 }
 
 
-NTSTATUS SetRegisterMouseSensitivity(PDEVICE_CONTEXT pDevContext, ULONG ms_idx)//±£´æÉèÖÃµ½×¢²á±í
+NTSTATUS SetRegisterMouseSensitivity(PDEVICE_CONTEXT pDevContext, ULONG ms_idx)//ä¿å­˜è®¾ç½®åˆ°æ³¨å†Œè¡¨
 {
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device = pDevContext->FxDevice;
@@ -4860,7 +4872,7 @@ NTSTATUS SetRegisterMouseSensitivity(PDEVICE_CONTEXT pDevContext, ULONG ms_idx)/
 
 
 
-NTSTATUS GetRegisterMouseSensitivity(PDEVICE_CONTEXT pDevContext, ULONG* ms_idx)//´Ó×¢²á±í¶ÁÈ¡ÉèÖÃ
+NTSTATUS GetRegisterMouseSensitivity(PDEVICE_CONTEXT pDevContext, ULONG* ms_idx)//ä»æ³¨å†Œè¡¨è¯»å–è®¾ç½®
 {
 
     NTSTATUS status = STATUS_SUCCESS;

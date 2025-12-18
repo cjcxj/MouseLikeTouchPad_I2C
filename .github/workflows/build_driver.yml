@@ -31,7 +31,7 @@ jobs:
         cl InjectTouch.cpp user32.lib setupapi.lib /Fe:InjectTouch.exe
 
     - name: Upload Driver Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: MouseLikePTP_Driver
         path: |
